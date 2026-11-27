@@ -657,6 +657,30 @@ app.get('/api/app-config', telegramAuth, async (req, res) => {
 });
 
 // ==========================================
+// USER NOTIFICATIONS
+// ==========================================
+
+app.get('/api/notifications', telegramAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const uid = req.telegramUser.id;
+
+    const snapAll = await db.collection('notifications').where('target', '==', 'all').get();
+    const snapUser = await db.collection('notifications').where('target', '==', uid).get();
+    
+    let notifications = [];
+    snapAll.forEach(d => notifications.push({ id: d.id, ...d.data() }));
+    snapUser.forEach(d => notifications.push({ id: d.id, ...d.data() }));
+
+    notifications.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+    res.json({ success: true, data: notifications });
+  } catch (error) {
+    sendError(res, error, 'Could not load notifications.');
+  }
+});
+
+// ==========================================
 // USER ADVERTISEMENTS
 // ==========================================
 
@@ -980,7 +1004,6 @@ app.get('/api/referrals', telegramAuth, async (req, res) => {
         successfulCount,
         totalCount: referrals.length,
         inProgressCount: referrals.length - successfulCount,
-        requiredSuccessfulReferrals: 10, // এটি ফ্রন্টএন্ডে দেখানোর জন্য, ইউজার অ্যাপে API থেকে নিবে
         requiredAdsPerReferral: REQUIRED_REFERRAL_ADS,
         link: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=ref_${uid}`,
         bonus: REFERRAL_BONUS,
