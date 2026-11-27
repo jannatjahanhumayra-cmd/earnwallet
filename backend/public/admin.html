@@ -24,7 +24,7 @@
   .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
   .panel h2{font-size:15px;margin:0 0 12px}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+  th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
   th{color:var(--mut);font-size:12px;text-transform:uppercase}
   input,textarea,select{width:100%;background:#0d1322;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 10px;font-size:13px;margin-top:4px}
   label{display:block;font-size:12px;color:var(--mut);margin-top:10px}
@@ -51,7 +51,7 @@
       <a onclick="showTab('dashboard')">Dashboard</a>
       <a onclick="showTab('users')">Users</a>
       <a onclick="showTab('tasks')">Tasks</a>
-      <a onclick="showTab('proofs')">Task Proofs</a> <!-- নতুন -->
+      <a onclick="showTab('proofs')">Task Proofs</a>
       <a onclick="showTab('ads')">Ads</a>
       <a onclick="showTab('withdrawals')">Withdrawals</a>
       <a onclick="showTab('live')">Live Withdrawals</a>
@@ -321,15 +321,31 @@ async function loadProofs(statusFilter = 'pending') {
     el('proofsBody').innerHTML = data.map(s => {
       const statusClass = s.status === 'approved' ? 'approved' : s.status === 'rejected' ? 'rejected' : 'pending';
       
+      // প্রুফ টেক্সট বা ছবি চেক করা
+      let proofDisplay = '';
+      const proofStr = String(s.proof || '').trim();
+      
+      if (proofStr.match(/^https?:\/\/.*\.(jpeg|jpg|gif|png|webp)/i) || proofStr.startsWith('data:image/')) {
+        // যদি ইউজার ছবির লিংক দেয়
+        proofDisplay = `<a href="${h(proofStr)}" target="_blank">
+          <img src="${h(proofStr)}" style="max-width:80px; max-height:80px; border-radius:4px; border:1px solid var(--line); object-fit:cover;" alt="Proof" />
+        </a>`;
+      } else if (proofStr.length > 0) {
+        // যদি ইউজার টেক্সট বা কোড দেয়
+        proofDisplay = `<div style="max-width: 180px; max-height: 60px; overflow-y: auto; background: #0d1322; padding: 4px; border-radius: 4px; font-size: 11px; word-break: break-all; border: 1px solid var(--line);" title="${h(proofStr)}">
+          ${h(proofStr)}
+        </div>`;
+      } else {
+        proofDisplay = '<span class="muted">No proof provided</span>';
+      }
+
       return `<tr>
         <td>
           <strong>${h(s.userName)}</strong><br>
           <span class="muted">ID: ${h(s.userTelegramId)}</span>
         </td>
         <td>${h(s.taskTitle)}</td>
-        <td style="max-width: 200px; word-break: break-all;">
-          <span class="muted">${h(s.proof || 'No proof text')}</span>
-        </td>
+        <td>${proofDisplay}</td>
         <td>${h(s.taskReward)}</td>
         <td><span class="tag ${statusClass}">${h(s.status)}</span></td>
         <td>
