@@ -168,7 +168,7 @@
       </div>
     </section>
 
-    <!-- WITHDRAWALS (আপডেট করা হয়েছে) -->
+    <!-- WITHDRAWALS -->
     <section data-tab="withdrawals" class="hide">
       <div class="panel">
         <h2>User Withdrawal Requests</h2>
@@ -192,13 +192,6 @@
             <tbody id="wdBody"></tbody>
           </table>
         </div>
-      </div>
-      <div class="panel">
-        <h2>Withdrawal System Rules</h2>
-        <label>Minimum Withdraw</label>
-        <input type="number" id="minWithdraw" />
-        <button class="btn" onclick="saveSettings()">Save Rules</button>
-        <div class="msg" id="setMsg"></div>
       </div>
     </section>
 
@@ -238,8 +231,20 @@
     <section data-tab="settings" class="hide">
       <div class="panel">
         <h2>App Settings</h2>
-        <label>Maintenance Mode</label><select id="setMaintenance"><option value="false">Off</option><option value="true">On</option></select>
-        <button class="btn" onclick="saveSettings()">Save</button>
+        
+        <label>Minimum Withdraw Amount</label>
+        <input type="number" id="minWithdraw" value="100" />
+        
+        <label>Required Successful Referrals for Withdrawal</label>
+        <input type="number" id="setRequiredRef" value="10" />
+        
+        <label>Maintenance Mode</label>
+        <select id="setMaintenance">
+          <option value="false">Off</option>
+          <option value="true">On</option>
+        </select>
+        
+        <button class="btn" onclick="saveSettings()">Save Settings</button>
         <div class="msg" id="setMsg"></div>
       </div>
     </section>
@@ -594,12 +599,20 @@ async function sendNotify(){
 
 // --- SETTINGS ---
 async function loadSettings(){
-  const { data } = await api('/api/admin/settings'); state.settings = data || {};
+  const { data } = await api('/api/admin/settings'); 
+  state.settings = data || {};
   el('setMaintenance').value = data.maintenance ? 'true' : 'false';
-  el('minWithdraw').value = data.minWithdraw || 100;
+  if (el('minWithdraw')) el('minWithdraw').value = data.minWithdraw || 100;
+  if (el('setRequiredRef')) el('setRequiredRef').value = data.requiredReferrals !== undefined ? data.requiredReferrals : 10;
 }
+
 async function saveSettings(){
-  await api('/api/admin/settings', { method:'PUT', body: JSON.stringify({ maintenance: el('setMaintenance').value === 'true', minWithdraw: Number(el('minWithdraw').value) })});
+  const body = { 
+    maintenance: el('setMaintenance').value === 'true',
+    minWithdraw: Number(el('minWithdraw').value),
+    requiredReferrals: Number(el('setRequiredRef').value)
+  };
+  await api('/api/admin/settings', { method:'PUT', body: JSON.stringify(body) });
   setMsg('setMsg', 'Settings Saved', true);
 }
 
