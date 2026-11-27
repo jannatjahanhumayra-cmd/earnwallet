@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EarnWallet Admin</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{--bg:#0f1420;--card:#1a2233;--line:#2a3550;--txt:#e8edf7;--mut:#8b98b5;--acc:#4c8dff;--ok:#2ecc71;--bad:#ff5c5c;--warn:#f1c40f}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  header{position:sticky;top:0;z-index:10;background:#121828;border-bottom:1px solid var(--line);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;letter-spacing:.3px}
+  .nav{display:flex;gap:6px;flex-wrap:wrap}
+  .nav button{background:transparent;border:1px solid var(--line);color:var(--mut);padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer}
+  .nav button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  main{padding:18px;max-width:1150px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card .k{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+  .card .v{font-size:24px;font-weight:700;margin-top:6px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+  .panel h2{font-size:15px;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  input,textarea,select{width:100%;background:#0d1322;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 10px;font-size:13px;font-family:inherit}
+  label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{background:var(--acc);border:none;color:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  .btn.bad{background:var(--bad)} .btn.ok{background:var(--ok)}
+  .btn.sm{padding:5px 9px;font-size:12px}
+  .msg{margin-top:10px;font-size:13px;min-height:18px}
+  .msg.ok{color:var(--ok)} .msg.bad{color:var(--bad)}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .tag.active,.tag.approved,.tag.successful{background:rgba(46,204,113,.15);color:var(--ok)}
+  .tag.banned,.tag.rejected{background:rgba(255,92,92,.15);color:var(--bad)}
+  .tag.pending{background:rgba(241,196,15,.15);color:var(--warn)}
+  .hide{display:none!important}
+  .muted{color:var(--mut);font-size:12px}
+  .scroll{overflow:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚙️ EarnWallet Admin</h1>
+  <div class="nav" id="nav"></div>
+</header>
+
+<main>
+  <div id="gate" class="panel">
+    <h2>Admin access</h2>
+    <p class="muted" id="gateMsg">Open this panel from the Admin Bot.</p>
+  </div>
+
+  <div id="app" class="hide">
+    <!-- DASHBOARD -->
+    <section data-tab="dashboard">
+      <div class="grid" id="statsGrid"></div>
+      <div class="panel">
+        <h2>Quick actions</h2>
+        <button class="btn ghost" onclick="loadAll()">🔄 Refresh all</button>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section data-tab="users" class="hide">
+      <div class="panel">
+        <h2>Users</h2>
+        <input id="userSearch" placeholder="Search by id / username / name" oninput="renderUsers()" />
+        <div class="scroll" style="margin-top:10px"><table>
+          <thead><tr><th>ID</th><th>Name</th><th>Balance</th><th>Earned</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ADS -->
+    <section data-tab="ads" class="hide">
+      <div class="panel">
+        <h2>Create advertisement</h2>
+        <label>Title</label><input id="adTitle" />
+        <label>URL</label><input id="adUrl" placeholder="https://..." />
+        <div class="row">
+          <div><label>Reward (coins)</label><input id="adReward" type="number" value="1" /></div>
+          <div><label>Duration (20–300s)</label><input id="adDuration" type="number" value="20" /></div>
+        </div>
+        <button class="btn" style="margin-top:12px" onclick="createAd()">Create ad</button>
+        <div class="msg" id="adMsg"></div>
+      </div>
+      <div class="panel">
+        <h2>Advertisements</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>Title</th><th>Reward</th><th>Duration</th><th>Status</th><th></th></tr></thead>
+          <tbody id="adsBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- TASKS -->
+    <section data-tab="tasks" class="hide">
+      <div class="panel">
+        <h2>Create task</h2>
+        <label>Title</label><input id="taskTitle" />
+        <label>URL (optional)</label><input id="taskUrl" placeholder="https://..." />
+        <div class="row">
+          <div><label>Reward (coins)</label><input id="taskReward" type="number" value="0" /></div>
+          <div><label>Requires proof</label><select id="taskProof"><option value="false">No</option><option value="true">Yes</option></select></div>
+        </div>
+        <button class="btn" style="margin-top:12px" onclick="createTask()">Create task</button>
+        <div class="msg" id="taskMsg"></div>
+      </div>
+      <div class="panel">
+        <h2>Tasks</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>Title</th><th>Reward</th><th>Proof</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tasksBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- WITHDRAWALS -->
+    <section data-tab="withdrawals" class="hide">
+      <div class="panel">
+        <h2>Withdrawals</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="wdBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- AD PLACEMENTS -->
+    <section data-tab="placements" class="hide">
+      <div class="panel">
+        <h2>Ad placements</h2>
+        <div id="placementSlots"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section data-tab="settings" class="hide">
+      <div class="panel">
+        <h2>App settings</h2>
+        <label>App name</label><input id="setAppName" />
+        <label>Maintenance mode</label><select id="setMaintenance"><option value="false">Off</option><option value="true">On</option></select>
+        <label>Maintenance message</label><textarea id="setMaintenanceMsg" rows="2"></textarea>
+        <label>Support URL</label><input id="setSupportUrl" />
+        <label>Minimum withdrawal</label><input id="setMinWithdraw" type="number" />
+        <button class="btn" style="margin-top:12px" onclick="saveSettings()">Save settings</button>
+        <div class="msg" id="setMsg"></div>
+      </div>
+      <div class="panel">
+        <h2>Payment methods</h2>
+        <div id="paymentBoxes"></div>
+        <button class="btn" style="margin-top:12px" onclick="savePayments()">Save payments</button>
+        <div class="msg" id="payMsg"></div>
+      </div>
+    </section>
+
+    <!-- BACKUP -->
+    <section data-tab="backup" class="hide">
+      <div class="panel">
+        <h2>Backup</h2>
+        <button class="btn" onclick="downloadBackup()">⬇️ Download backup (JSON)</button>
+        <div class="msg" id="bakMsg"></div>
+      </div>
+      <div class="panel">
+        <h2>Restore (safe merge)</h2>
+        <input type="file" id="restoreFile" accept="application/json" />
+        <button class="btn bad" style="margin-top:12px" onclick="restoreBackup()">Restore</button>
+        <div class="msg" id="resMsg"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready(); tg?.expand();
+
+const INIT = tg?.initData || '';
+const TABS = [
+  ['dashboard','Dashboard'],['users','Users'],['ads','Ads'],['tasks','Tasks'],
+  ['withdrawals','Withdrawals'],['placements','Placements'],['settings','Settings'],['backup','Backup']
+];
+
+let state = { users:[], ads:[], tasks:[], withdrawals:[], placements:{}, settings:{}, payments:{} };
+
+function el(id){ return document.getElementById(id); }
+function h(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function api(path, opts = {}){
+  const res = await fetch(path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `tma ${INIT}`,
+      ...(opts.headers || {})
+    }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || `HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+function buildNav(active){
+  el('nav').innerHTML = TABS.map(([k,l]) =>
+    `<button class="${k===active?'on':''}" onclick="showTab('${k}')">${l}</button>`
+  ).join('');
+}
+
+function showTab(name){
+  buildNav(name);
+  document.querySelectorAll('section[data-tab]').forEach(s =>
+    s.classList.toggle('hide', s.dataset.tab !== name)
+  );
+}
+
+function setMsg(id, text, ok){
+  const n = el(id);
+  if (!n) return;
+  n.textContent = text;
+  n.className = 'msg ' + (ok ? 'ok' : 'bad');
+  setTimeout(() => { if (n.textContent === text) { n.textContent=''; n.className='msg'; } }, 4000);
+}
+
+// ---------- BOOT / AUTH ----------
+async function boot(){
+  if (!INIT) {
+    el('gateMsg').textContent = 'Telegram WebApp not detected. Open this page from the Admin Bot.';
+    return;
+  }
+  try {
+    await api('/api/admin/stats');
+    el('gate').classList.add('hide');
+    el('app').classList.remove('hide');
+    showTab('dashboard');
+    await loadAll();
+  } catch (e) {
+    el('gateMsg').textContent = e.status === 403
+      ? 'Access denied: your Telegram ID is not the configured admin.'
+      : 'Admin authentication failed. Open from the Admin Bot.';
+  }
+}
+
+// ---------- LOADERS ----------
+async function loadAll(){
+  await Promise.allSettled([
+    loadStats(), loadUsers(), loadAds(), loadTasks(),
+    loadWithdrawals(), loadPlacements(), loadSettings(), loadPayments()
+  ]);
+}
+
+async function loadStats(){
+  const { data } = await api('/api/admin/stats');
+  const cards = [
+    ['Total users', data.totalUsers],
+    ['Active', data.activeUsers],
+    ['Banned', data.bannedUsers],
+    ['Total balance', data.totalBalance],
+    ['Pending withdrawals', data.pendingWithdraws]
+  ];
+  el('statsGrid').innerHTML = cards.map(([k,v]) =>
+    `<div class="card"><div class="k">${k}</div><div class="v">${h(v)}</div></div>`
+  ).join('');
+}
+
+async function loadUsers(){
+  const { data } = await api('/api/admin/users');
+  state.users = data || [];
+  renderUsers();
+}
+
+function renderUsers(){
+  const q = (el('userSearch')?.value || '').toLowerCase().trim();
+  const list = state.users.filter(u => !q || [
+    u.id, u.username, u.firstName, u.lastName, u.telegramId
+  ].some(v => String(v||'').toLowerCase().includes(q)));
+
+  el('usersBody').innerHTML = list.map(u => {
+    const status = u.status === 'banned' ? 'banned' : 'active';
+    return `<tr>
+      <td>${h(u.id)}</td>
+      <td>${h(u.firstName || '')} ${h(u.lastName || '')}<div class="muted">@${h(u.username || '—')}</div></td>
+      <td>${h(u.balance ?? 0)}</td>
+      <td>${h(u.totalEarnings ?? 0)}</td>
+      <td><span class="tag ${status}">${status}</span></td>
+      <td>
+        <button class="btn sm ${status==='banned'?'ok':'bad'}"
+          onclick="toggleBan('${h(u.id)}','${status==='banned'?'active':'banned'}')">
+          ${status==='banned'?'Unban':'Ban'}
+        </button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="muted">No users</td></tr>';
+}
+
+async function toggleBan(telegramId, status){
+  try {
+    await api('/api/admin/ban', { method:'POST', body: JSON.stringify({ telegramId, status }) });
+    await loadUsers(); await loadStats();
+  } catch (e) { alert(e.message); }
+}
+
+async function loadAds(){
+  const { data } = await api('/api/admin/ads');
+  state.ads = data || [];
+  el('adsBody').innerHTML = state.ads.map(a => `<tr>
+    <td>${h(a.title)}</td>
+    <td>${h(a.reward)}</td>
+    <td>${h(a.duration)}s</td>
+    <td><span class="tag ${a.status==='active'?'active':'banned'}">${h(a.status||'—')}</span></td>
+    <td><button class="btn sm bad" onclick="deleteAd('${h(a.id)}')">Delete</button></td>
+  </tr>`).join('') || '<tr><td colspan="5" class="muted">No ads</td></tr>';
+}
+
+async function createAd(){
+  try {
+    await api('/api/admin/ads', {
+      method:'POST',
+      body: JSON.stringify({
+        title: el('adTitle').value,
+        url: el('adUrl').value,
+        reward: Number(el('adReward').value),
+        duration: Number(el('adDuration').value)
+      })
+    });
+    el('adTitle').value=''; el('adUrl').value='';
+    setMsg('adMsg','Ad created', true); await loadAds();
+  } catch (e) { setMsg('adMsg', e.message, false); }
+}
+
+async function deleteAd(id){
+  if (!confirm('Delete this ad?')) return;
+  try { await api('/api/admin/ads/'+encodeURIComponent(id), { method:'DELETE' }); await loadAds(); }
+  catch (e) { alert(e.message); }
+}
+
+async function loadTasks(){
+  const { data } = await api('/api/admin/tasks');
+  state.tasks = data || [];
+  el('tasksBody').innerHTML = state.tasks.map(t => `<tr>
+    <td>${h(t.title)}</td>
+    <td>${h(t.reward)}</td>
+    <td>${t.requiresProof ? 'Yes':'No'}</td>
+    <td><span class="tag ${t.status==='active'?'active':'banned'}">${h(t.status||'—')}</span></td>
+    <td><button class="btn sm bad" onclick="deleteTask('${h(t.id)}')">Delete</button></td>
+  </tr>`).join('') || '<tr><td colspan="5" class="muted">No tasks</td></tr>';
+}
+
+async function createTask(){
+  try {
+    await api('/api/admin/tasks', {
+      method:'POST',
+      body: JSON.stringify({
+        title: el('taskTitle').value,
+        url: el('taskUrl').value,
+        reward: Number(el('taskReward').value),
+        requiresProof: el('taskProof').value === 'true'
+      })
+    });
+    el('taskTitle').value=''; el('taskUrl').value='';
+    setMsg('taskMsg','Task created', true); await loadTasks();
+  } catch (e) { setMsg('taskMsg', e.message, false); }
+}
+
+async function deleteTask(id){
+  if (!confirm('Delete this task?')) return;
+  try { await api('/api/admin/tasks/'+encodeURIComponent(id), { method:'DELETE' }); await loadTasks(); }
+  catch (e) { alert(e.message); }
+}
+
+async function loadWithdrawals(){
+  const { data } = await api('/api/admin/withdrawals');
+  state.withdrawals = data || [];
+  el('wdBody').innerHTML = state.withdrawals.map(w => `<tr>
+    <td>${h(w.telegramId || w.userId)}</td>
+    <td>${h(w.amount)}</td>
+    <td>${h(w.method)}</td>
+    <td>${h(w.account)}</td>
+    <td><span class="tag ${h(w.status)}">${h(w.status)}</span></td>
+    <td>${w.status === 'pending' ? `
+      <button class="btn sm ok" onclick="processWd('${h(w.id)}','approved')">Approve</button>
+      <button class="btn sm bad" onclick="processWd('${h(w.id)}','rejected')">Reject</button>
+    ` : '—'}</td>
+  </tr>`).join('') || '<tr><td colspan="6" class="muted">No withdrawals</td></tr>';
+}
+
+async function processWd(id, status){
+  if (!confirm(`Mark withdrawal as ${status}?`)) return;
+  try {
+    await api('/api/admin/withdrawals/'+encodeURIComponent(id), {
+      method:'POST', body: JSON.stringify({ status })
+    });
+    await loadWithdrawals(); await loadStats();
+  } catch (e) { alert(e.message); }
+}
+
+const SLOTS = ['top','middle','bottom','gate'];
+async function loadPlacements(){
+  const { data } = await api('/api/admin/ad-placements');
+  state.placements = data || {};
+  el('placementSlots').innerHTML = SLOTS.map(slot => {
+    const p = state.placements[slot] || { label:'Advertisement', html:'', enabled:false };
+    return `<div class="card" style="margin-bottom:10px">
+      <h2>Slot: ${slot}</h2>
+      <label>Label</label><input id="pl-label-${slot}" value="${h(p.label)}" />
+      <label>HTML</label><textarea id="pl-html-${slot}" rows="4">${h(p.html)}</textarea>
+      <label>Enabled</label><select id="pl-enabled-${slot}">
+        <option value="false" ${!p.enabled?'selected':''}>Off</option>
+        <option value="true" ${p.enabled?'selected':''}>On</option>
+      </select>
+      <button class="btn" style="margin-top:10px" onclick="savePlacement('${slot}')">Save</button>
+      <button class="btn ghost" style="margin-top:10px" onclick="removePlacement('${slot}')">Remove</button>
+    </div>`;
+  }).join('');
+}
+
+async function savePlacement(slot){
+  try {
+    await api('/api/admin/ad-placements/'+slot, {
+      method:'PUT',
+      body: JSON.stringify({
+        label: el('pl-label-'+slot).value,
+        html: el('pl-html-'+slot).value,
+        enabled: el('pl-enabled-'+slot).value === 'true'
+      })
+    });
+    await loadPlacements();
+    alert('Saved');
+  } catch (e) { alert(e.message); }
+}
+
+async function removePlacement(slot){
+  if (!confirm('Remove this placement?')) return;
+  try { await api('/api/admin/ad-placements/'+slot, { method:'DELETE' }); await loadPlacements(); }
+  catch (e) { alert(e.message); }
+}
+
+async function loadSettings(){
+  const { data } = await api('/api/admin/settings');
+  state.settings = data;
+  el('setAppName').value = data.appName || '';
+  el('setMaintenance').value = data.maintenance ? 'true' : 'false';
+  el('setMaintenanceMsg').value = data.maintenanceMessage || '';
+  el('setSupportUrl').value = data.supportUrl || '';
+  el('setMinWithdraw').value = data.minWithdraw ?? 100;
+}
+
+async function saveSettings(){
+  try {
+    await api('/api/admin/settings', {
+      method:'PUT',
+      body: JSON.stringify({
+        appName: el('setAppName').value,
+        maintenance: el('setMaintenance').value === 'true',
+        maintenanceMessage: el('setMaintenanceMsg').value,
+        supportUrl: el('setSupportUrl').value,
+        minWithdraw: Number(el('setMinWithdraw').value)
+      })
+    });
+    setMsg('setMsg','Settings saved', true);
+  } catch (e) { setMsg('setMsg', e.message, false); }
+}
+
+async function loadPayments(){
+  const { data } = await api('/api/admin/payment-settings');
+  state.payments = data;
+  el('paymentBoxes').innerHTML = ['bKash','Nagad','USDT'].map(k => {
+    const p = data[k] || {};
+    return `<div class="card" style="margin-bottom:8px">
+      <strong>${k === 'USDT' ? 'Binance USDT' : k}</strong>
+      <label>Enabled</label><select id="pay-enabled-${k}">
+        <option value="false" ${!p.enabled?'selected':''}>Off</option>
+        <option value="true" ${p.enabled?'selected':''}>On</option>
+      </select>
+    </div>`;
+  }).join('');
+}
+
+async function savePayments(){
+  const body = {};
+  for (const k of ['bKash','Nagad','USDT']) {
+    body[k] = { enabled: el('pay-enabled-'+k).value === 'true' };
+  }
+  try {
+    await api('/api/admin/payment-settings', { method:'PUT', body: JSON.stringify(body) });
+    setMsg('payMsg','Payment settings saved', true);
+  } catch (e) { setMsg('payMsg', e.message, false); }
+}
+
+async function downloadBackup(){
+  try {
+    const res = await fetch('/api/admin/backup', {
+      headers: { 'Authorization': `tma ${INIT}` }
+    });
+    if (!res.ok) throw new Error('Backup failed');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `earnwallet-backup-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setMsg('bakMsg','Backup downloaded', true);
+  } catch (e) { setMsg('bakMsg', e.message, false); }
+}
+
+async function restoreBackup(){
+  const file = el('restoreFile').files[0];
+  if (!file) return setMsg('resMsg','Select a backup file first', false);
+  if (!confirm('Restore will merge data (no deletions). Continue?')) return;
+  try {
+    const text = await file.text();
+    const json = JSON.parse(text);
+    const { data } = await api('/api/admin/restore', { method:'POST', body: JSON.stringify(json) });
+    setMsg('resMsg', `Restored ${data.restoredDocuments} documents`, true);
+  } catch (e) { setMsg('resMsg', e.message, false); }
+}
+
+boot();
+</script>
+</body>
+</html>
