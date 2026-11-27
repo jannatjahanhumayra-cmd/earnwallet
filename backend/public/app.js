@@ -88,6 +88,12 @@ async function boot() {
       el('loader').innerHTML = `🛠 Maintenance<br><span style="font-size:14px;color:#888;margin-top:10px;display:block;">${h(state.config.maintenanceMessage)}</span>`;
       return;
     }
+
+    // সেটিংস থেকে চ্যানেল লিংক আপডেট
+    if(state.config.channels && state.config.channels.length > 0) {
+      if(el('gateChannel1')) el('gateChannel1').href = state.config.channels[0];
+      if(el('gateChannel2') && state.config.channels.length > 1) el('gateChannel2').href = state.config.channels[1];
+    }
     
     await loadProfile();
     
@@ -102,6 +108,8 @@ async function boot() {
     loadReferrals();
     loadWallet();
     loadNotifications();
+    loadLeaderboard();
+    loadBanner(); // নতুন ব্যানার স্ক্রলার
     updatePaymentOptions();
 
   } catch (e) {
@@ -121,7 +129,6 @@ async function loadProfile() {
   el('userPic').src = picUrl;
   el('headerBalance').innerHTML = `<span style="font-size:10px">$</span> ` + usdBalance;
   
-  // Home Page (Only USD)
   el('homeBalance').innerHTML = '$' + usdBalance;
   el('todayEarn').textContent = '$' + toUSD(data.todayEarnings);
   el('totalEarn').textContent = '$' + toUSD(data.totalEarnings);
@@ -137,6 +144,38 @@ function switchPage(pageId, navEl) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el('page-' + pageId).classList.add('active');
   if(navEl) navEl.classList.add('active');
+}
+
+// --- NEW: LOAD SCROLL BANNER ---
+async function loadBanner() {
+  try {
+    const { data } = await api('/api/ad-placements');
+    if (data && data.top && data.top.html) {
+      el('scrollBanner').innerHTML = `<div class="banner-item">${data.top.html}</div>`;
+    } else {
+      el('scrollBanner').innerHTML = `<div class="banner-item">Welcome to EarnWallet! Start earning now.</div>`;
+    }
+  } catch(e) {}
+}
+
+// --- NEW: LOAD LEADERBOARD ---
+async function loadLeaderboard() {
+  try {
+    const { data } = await api('/api/leaderboard');
+    if (!data.length) {
+      el('leaderboardList').innerHTML = '<p class="muted" style="text-align:center;">No data available.</p>';
+      return;
+    }
+    el('leaderboardList').innerHTML = data.map(u => `
+      <div class="rank-item">
+        <div class="rank-left">
+          <div class="rank-num ${u.rank === 1 ? 'top1' : u.rank === 2 ? 'top2' : u.rank === 3 ? 'top3' : ''}">#${u.rank}</div>
+          <div class="rank-name">${h(u.name)}</div>
+        </div>
+        <div class="rank-amount">$${toUSD(u.amount)}</div>
+      </div>
+    `).join('');
+  } catch(e) {}
 }
 
 function switchTaskTab(type, elm) {
@@ -230,7 +269,6 @@ async function loadTasks() {
     const { data } = await api('/api/tasks');
     state.tasks = data;
     
-    // ফিল্টার এবং সার্চ লজিক
     const q = (el('taskSearch')?.value || '').toLowerCase().trim();
     let filtered = data;
     
@@ -254,237 +292,4 @@ async function loadTasks() {
     }
     
     el('tasksList').innerHTML = filtered.map(t => {
-      const isDone = t.submissionStatus === 'pending' || t.submissionStatus === 'approved';
-      const statusStr = t.submissionStatus === 'pending' ? 'Under Review' : (t.submissionStatus === 'approved' ? 'Completed' : 'Available');
-      
-      return `
-      <div class="list-item">
-        <div class="left">
-          ${t.logoUrl ? `<img src="${h(t.logoUrl)}" onerror="this.style.display='none'" />` : `<div style="width:40px;height:40px;background:var(--line);border-radius:8px;"></div>`}
-          <div>
-            <div class="title">${h(t.title)}</div>
-            <div class="subtitle">${statusStr}</div>
-          </div>
-        </div>
-        <div class="right">
-          <div class="reward">+${h(t.reward)}</div>
-          ${isDone 
-            ? `<button class="btn sm ghost" disabled style="margin-top:6px;">Done</button>`
-            : `<button class="btn sm" style="margin-top:6px;" onclick='openTask("${h(t.id)}")'>Start</button>`}
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-function openTask(id) {
-  const t = state.tasks.find(x => x.id === id);
-  if (!t) return;
-  state.currentTask = t;
-  state.uploadedImageBase64 = null;
-  
-  el('tmTitle').textContent = t.title;
-  el('tmInst').textContent = t.instruction || 'Complete the task to earn reward.';
-  
-  if (t.url) {
-    el('tmLinkWrap').innerHTML = `<a href="${h(t.url)}" target="_blank" class="btn ghost" style="text-decoration:none;">Go to Link 🔗</a>`;
-  } else {
-    el('tmLinkWrap').innerHTML = '';
-  }
-  
-  el('tmProofWrap').style.display = t.requiresProof ? 'block' : 'none';
-  el('tmProof').value = '';
-  el('uploadPreview').innerHTML = '📸 Click to upload screenshot';
-  el('tmImage').value = '';
-  
-  el('taskModal').classList.add('active');
-}
-
-function handleImageUpload(event) {
-  const file = event.target.files[0];
-  if(!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    state.uploadedImageBase64 = e.target.result;
-    el('uploadPreview').innerHTML = `<img src="${e.target.result}" />`;
-    el('uploadPreview').style.color = '#fff';
-  };
-  reader.readAsDataURL(file);
-}
-
-async function submitTask() {
-  const textProof = el('tmProof').value.trim();
-  const hasImage = state.uploadedImageBase64 !== null;
-  
-  if (state.currentTask.requiresProof && !textProof && !hasImage) {
-    return alert('Please provide a screenshot or code as proof.');
-  }
-  
-  const finalProof = hasImage ? state.uploadedImageBase64 : textProof;
-  
-  if (hasImage && finalProof.length > 900000) {
-    return alert('Image is too large. Please select a smaller screenshot.');
-  }
-
-  try {
-    await api(`/api/tasks/${state.currentTask.id}/submit`, {
-      method: 'POST',
-      body: JSON.stringify({ proof: finalProof })
-    });
-    alert('Task submitted successfully! Please wait for admin approval.');
-    closeModal('taskModal');
-    loadTasks();
-  } catch(e) { alert(e.message); }
-}
-
-async function loadReferrals() {
-  try {
-    const { data } = await api('/api/referrals');
-    el('refLink').textContent = data.link;
-    el('refLinkTop').textContent = data.link;
-    el('refTotalTop').textContent = data.totalCount;
-    
-    if (!data.referrals.length) {
-      el('refList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No referrals yet.</p>';
-      return;
-    }
-    el('refList').innerHTML = data.referrals.map(r => `
-      <div class="list-item" style="padding:10px;">
-        <div class="left">
-          <div>
-            <div class="title" style="font-size:13px;">${h(r.firstName)} ${h(r.lastName)}</div>
-            <div class="subtitle" style="font-size:11px;">ID: ${h(r.telegramId)}</div>
-          </div>
-        </div>
-        <div class="right">
-          <div style="font-size:11px; font-weight:bold; color:${r.status === 'successful' ? 'var(--ok)' : 'var(--warn)'}">${h(r.status)}</div>
-        </div>
-      </div>
-    `).join('');
-  } catch(e) {}
-}
-
-function copyRef() {
-  const link = el('refLink').textContent;
-  navigator.clipboard.writeText(link).then(() => {
-    alert('Referral link copied!');
-  });
-}
-
-function updatePaymentOptions() {
-  const payments = state.config.payments || {};
-  const select = el('wdMethod');
-  select.innerHTML = '';
-  
-  let hasMethod = false;
-  if (payments.bKash?.enabled) {
-    select.innerHTML += `<option value="bKash">bKash</option>`;
-    hasMethod = true;
-  }
-  if (payments.Nagad?.enabled) {
-    select.innerHTML += `<option value="Nagad">Nagad</option>`;
-    hasMethod = true;
-  }
-  if (payments.USDT?.enabled) {
-    select.innerHTML += `<option value="Binance USDT">Binance USDT</option>`;
-    hasMethod = true;
-  }
-  
-  if (!hasMethod) {
-    select.innerHTML = `<option value="">No payment methods available</option>`;
-  }
-}
-
-async function loadWallet() {
-  el('minW').textContent = '$' + toUSD(state.config.minWithdraw || 100);
-  const reqRef = state.config.requiredReferrals !== undefined ? state.config.requiredReferrals : 10;
-  el('wdRuleText').textContent = `You need at least ${reqRef} successful referral(s) to enable withdrawal.`;
-  
-  try {
-    const { data } = await api('/api/history');
-    if (!data.length) {
-      el('historyList').innerHTML = '<p class="muted" style="text-align:center;">No history found.</p>';
-      return;
-    }
-    el('historyList').innerHTML = data.map(x => {
-      let typeName = x.type.toUpperCase().replace('_', ' ');
-      return `
-      <div class="list-item" style="padding:10px;">
-        <div class="left">
-          <div>
-            <div class="title" style="font-size:13px;">${h(typeName)}</div>
-            <div class="subtitle" style="font-size:11px;">${new Date(x.createdAt).toLocaleString()}</div>
-          </div>
-        </div>
-        <div class="right">
-          <div style="font-size:14px; font-weight:bold; color:${x.amount > 0 ? 'var(--ok)' : 'var(--bad)'}">
-            ${x.amount > 0 ? '+' : ''}${x.amount}
-          </div>
-          <div style="font-size:10px; color:var(--mut);">${h(x.status)}</div>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-async function requestWithdraw() {
-  const amount = Number(el('wdAmount').value);
-  const method = el('wdMethod').value;
-  const account = el('wdAccount').value.trim();
-  
-  if (!amount || !account || !method) return alert('Please fill all fields.');
-  
-  try {
-    await api('/api/withdraw', {
-      method: 'POST',
-      body: JSON.stringify({ amount, method, account })
-    });
-    alert('Withdrawal requested! Wait for admin approval.');
-    el('wdAmount').value = '';
-    el('wdAccount').value = '';
-    loadWallet();
-    loadProfile();
-  } catch(e) { alert(e.message); }
-}
-
-async function loadNotifications() {
-  try {
-    const { data } = await api('/api/notifications');
-    
-    // মেইন হোম পেজের নোটিশ বক্স
-    if (data && data.length > 0) {
-      el('noticeMarquee').innerHTML = `<span>${h(data[0].title)}: ${h(data[0].message)}</span>`;
-    } else {
-      el('noticeMarquee').innerHTML = `<span>No new notices.</span>`;
-    }
-
-    // পপআপের ভেতরের নোটিশ লিস্ট
-    if (!data || data.length === 0) {
-      el('modalNotifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No notifications.</p>';
-    } else {
-      el('modalNotifyList').innerHTML = data.map(n => `
-        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border-left: 3px solid var(--acc);">
-          <div style="font-weight: 700; color: var(--acc); margin-bottom: 4px; font-size:13px;">${h(n.title)}</div>
-          <div style="font-size: 12px; color: var(--txt); margin-bottom: 6px;">${h(n.message)}</div>
-          <div style="font-size: 10px; color: var(--mut);">${new Date(n.createdAt).toLocaleString()}</div>
-        </div>
-      `).join('');
-    }
-  } catch(e) {}
-}
-
-function openNotificationsModal() {
-  el('notifyModal').classList.add('active');
-}
-
-function closeModal(id) {
-  el(id).classList.remove('active');
-}
-
-// --- STARTUP LOGIC ---
-window.addEventListener('load', () => {
-  if (checkChannelGate()) {
-    boot();
-  }
-});
+      const isDone = t
