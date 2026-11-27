@@ -1243,6 +1243,9 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 // ==========================================
 // ADMIN USERS
 // ==========================================
+// ==========================================
+// ADMIN USERS
+// ==========================================
 
 app.get('/api/admin/users', adminAuth, async (req, res) => {
   try {
@@ -1253,6 +1256,7 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
   }
 });
 
+// ১. ইউজার ব্যান / আনব্যান
 app.post('/api/admin/ban', adminAuth, async (req, res) => {
   try {
     const telegramId = String(req.body.telegramId || '');
@@ -1273,6 +1277,41 @@ app.post('/api/admin/ban', adminAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     sendError(res, error, 'Could not update user status.');
+  }
+});
+
+// ২. ইউজারের ব্যালেন্স অ্যাড বা সাব করার API
+app.post('/api/admin/update-balance', adminAuth, async (req, res) => {
+  try {
+    const telegramId = String(req.body.telegramId || '');
+    const amount = Number(req.body.amount);
+
+    if (!/^\d{1,20}$/.test(telegramId) || !Number.isFinite(amount) || amount === 0) {
+      return res.status(400).json({ success: false, error: 'Invalid user or amount.' });
+    }
+
+    const db = getDb();
+    const uRef = userRef(db, telegramId);
+    
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(uRef);
+      if (!snap.exists) throw new Error('USER_NOT_FOUND');
+
+      const currentBal = Number(snap.data().balance || 0);
+      if (currentBal + amount < 0) throw new Error('INSUFFICIENT_BALANCE');
+
+      tx.update(uRef, {
+        balance: currentBal + amount,
+        ...(amount > 0 ? { totalEarnings: Number(snap.data().totalEarnings || 0) + amount } : {})
+      });
+    });
+
+    res.json({ success: true, message: 'Balance updated successfully.' });
+  } catch (error) {
+    if (error.message === 'INSUFFICIENT_BALANCE') {
+      return res.status(400).json({ success: false, error: 'User balance cannot be negative.' });
+    }
+    sendError(res, error, 'Could not update balance.');
   }
 });
 
