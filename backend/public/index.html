@@ -12,8 +12,8 @@
 
 <!-- Channel Join Gate -->
 <div id="channelGate" style="position:fixed; inset:0; background:#0b0f19; z-index:1000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;">
-  <h2 style="color:var(--acc);">Join Our Channels</h2>
-  <p style="color:var(--mut);">You must join our official channels to use the app.</p>
+  <h2 style="color:var(--acc); font-size: 22px; margin-bottom: 8px;">Join Our Channels</h2>
+  <p style="color:var(--mut); font-size: 13px; margin-bottom: 20px;">You must join our official channels to use the app.</p>
   
   <a href="https://t.me/EarnWallet_Official" target="_blank" class="btn" style="text-decoration:none; margin-bottom:8px;">Join Official Channel</a>
   <a href="https://t.me/All_Official_Channal" target="_blank" class="btn ghost" style="text-decoration:none; margin-bottom:12px;">Join Backup Channel</a>
@@ -38,8 +38,17 @@
 <main id="app-main" style="display:none;">
   <!-- HOME PAGE -->
   <section id="page-home" class="page active">
-    <div id="homeNotices" style="margin-bottom:12px;">
-      <div class="card" style="text-align: center; font-size: 12px; color: var(--mut);">No new notices.</div>
+    
+    <!-- Notification Box (Clickable) -->
+    <div class="notice-box" onclick="openNotificationsModal()">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:16px;">📢</span>
+        <span style="font-weight:600; font-size:13px;">Announcements</span>
+      </div>
+      <div class="notice-marquee" id="noticeMarquee">
+        <span>Loading notices...</span>
+      </div>
+      <div style="color:var(--mut); font-size:16px;">›</div>
     </div>
 
     <div class="card" style="background: linear-gradient(145deg, #141a29, #0b0f19); border-color: var(--acc);">
@@ -47,12 +56,12 @@
       <div class="wallet-balance" id="homeBalance">$0.00</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
         <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
-          <div style="font-size: 10px; color: var(--mut);">Today's Earnings</div>
-          <div style="font-size: 14px; font-weight: 700; color: var(--ok); margin-top: 2px;" id="todayEarn">0</div>
+          <div style="font-size: 10px; color: var(--mut);">Today's Earn</div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--ok); margin-top: 2px;" id="todayEarn">$0.00</div>
         </div>
         <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
           <div style="font-size: 10px; color: var(--mut);">Total Earned</div>
-          <div style="font-size: 14px; font-weight: 700; color: var(--txt); margin-top: 2px;" id="totalEarn">0</div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--txt); margin-top: 2px;" id="totalEarn">$0.00</div>
         </div>
       </div>
     </div>
@@ -66,10 +75,17 @@
 
   <!-- TASKS PAGE -->
   <section id="page-tasks" class="page">
-    <h2 style="font-size: 20px; margin: 0 0 12px 0;">Activity Center</h2>
-    <div class="tabs">
-      <div class="tab active" onclick="switchTaskTab('all', this)">🏆 All Tasks</div>
-      <div class="tab" onclick="switchTaskTab('ads', this)">🎁 Watch Ads</div>
+    
+    <!-- Search & Filter -->
+    <div class="search-bar">
+      <input type="text" id="taskSearch" placeholder="Search tasks..." oninput="loadTasks()" />
+    </div>
+    
+    <div class="tabs-scroll">
+      <div class="tab-btn active" onclick="switchTaskTab('all', this)">All</div>
+      <div class="tab-btn" onclick="switchTaskTab('telegram', this)">Telegram</div>
+      <div class="tab-btn" onclick="switchTaskTab('twitter', this)">Twitter</div>
+      <div class="tab-btn" onclick="switchTaskTab('youtube', this)">YouTube</div>
     </div>
 
     <div id="tasksList"></div>
@@ -88,6 +104,11 @@
       </div>
       <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; font-size: 11px; margin-bottom: 10px; word-break: break-all;" id="refLinkTop">...</div>
       <button class="btn ghost" style="background: #fff; color: #ff5500; box-shadow: none;" onclick="copyRef()">🔗 Copy Link</button>
+    </div>
+
+    <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+      <div><div style="font-size: 20px; font-weight: 800; color: var(--acc);">100+</div><div style="font-size: 11px; color: var(--mut);">Total Tasks</div></div>
+      <div><div style="font-size: 20px; font-weight: 800; color: var(--ok);">$500+</div><div style="font-size: 11px; color: var(--mut);">Total Paid</div></div>
     </div>
   </section>
 
@@ -127,11 +148,6 @@
       <div class="wallet-balance" id="profWalletBalance">$0.00</div>
       <button class="btn" onclick="switchPage('wallet', document.querySelector('.nav-item:nth-child(5)'))">⬇️ Withdraw</button>
     </div>
-
-    <div class="card">
-      <div class="card-title" style="font-size: 14px;">🔔 Notifications</div>
-      <div id="notifyList" style="display: flex; flex-direction: column; gap: 6px;"></div>
-    </div>
   </section>
 
   <!-- WALLET PAGE -->
@@ -139,8 +155,8 @@
     <h2 style="font-size: 20px; margin: 0 0 12px 0;">Withdraw</h2>
     <div class="card">
       <p style="font-size: 12px; color: var(--warn); margin-top: 0;" id="wdRuleText"></p>
-      <label>Amount (Min: <span id="minW">100</span>)</label>
-      <input type="number" id="wdAmount" placeholder="Enter amount" />
+      <label>Amount (Min: <span id="minW">$1.00</span>)</label>
+      <input type="number" id="wdAmount" placeholder="Enter amount in USD" />
       
       <label>Payment Method</label>
       <select id="wdMethod"></select>
@@ -181,6 +197,19 @@
 </nav>
 
 <!-- MODALS -->
+<!-- Notifications Modal -->
+<div class="modal" id="notifyModal">
+  <div class="modal-content">
+    <h3 style="margin-top:0; font-size:16px; display:flex; justify-content:space-between; align-items:center;">
+      All Notifications
+      <span style="cursor:pointer; color:var(--mut); font-size:20px;" onclick="closeModal('notifyModal')">&times;</span>
+    </h3>
+    <div id="modalNotifyList" style="display: flex; flex-direction: column; gap: 8px; margin-top:12px;">
+      <!-- Notifications load here -->
+    </div>
+  </div>
+</div>
+
 <!-- Task Modal with Image Upload -->
 <div class="modal" id="taskModal">
   <div class="modal-content">
@@ -191,12 +220,10 @@
     
     <div id="tmProofWrap">
       <label>Upload Screenshot or Enter Code</label>
-      
       <div class="upload-box" onclick="document.getElementById('tmImage').click()">
         <input type="file" id="tmImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)" />
         <div id="uploadPreview" class="upload-preview">📸 Click to upload screenshot</div>
       </div>
-
       <input type="text" id="tmProof" placeholder="Enter Code/Link here (optional)" style="margin-bottom:10px;" />
     </div>
     
