@@ -2,45 +2,585 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>EarnWallet</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  body{margin:0;font-family:system-ui,sans-serif;background:#0f1420;color:#e8edf7;
-       display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}
-  .box{padding:24px}
-  h1{font-size:20px;margin:0 0 8px}
-  p{color:#8b98b5;font-size:14px;margin:0}
+  :root { --bg: #0f1420; --card: #1a2233; --line: #2a3550; --txt: #e8edf7; --mut: #8b98b5; --acc: #4c8dff; --ok: #2ecc71; --bad: #ff5c5c; --warn: #f1c40f; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding-bottom: 70px; }
+  
+  /* Loader */
+  #loader { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; font-size: 18px; color: var(--acc); font-weight: bold; }
+
+  /* Header */
+  header { padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #121828; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-info img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--line); }
+  .user-info .name { font-weight: 600; font-size: 15px; }
+  .balance-badge { background: rgba(76, 141, 255, 0.15); color: var(--acc); padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+
+  /* Main Content */
+  main { padding: 16px; }
+  .page { display: none; animation: fadeIn 0.2s; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Cards & Grid */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat-box { background: #121828; border: 1px solid var(--line); padding: 12px; border-radius: 10px; text-align: center; }
+  .stat-box .k { font-size: 11px; color: var(--mut); text-transform: uppercase; }
+  .stat-box .v { font-size: 18px; font-weight: bold; margin-top: 4px; color: var(--txt); }
+
+  /* Buttons */
+  .btn { width: 100%; background: var(--acc); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; display: inline-block; }
+  .btn:active { opacity: 0.8; }
+  .btn.ok { background: var(--ok); } .btn.bad { background: var(--bad); } .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--txt); }
+  .btn.sm { padding: 8px 12px; font-size: 13px; width: auto; }
+
+  /* Inputs */
+  input, select { width: 100%; background: #0d1322; border: 1px solid var(--line); color: var(--txt); padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
+  label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; }
+
+  /* Live Feed Ticker */
+  .live-feed { background: #121828; border-radius: 8px; padding: 8px 12px; overflow: hidden; white-space: nowrap; border: 1px solid var(--line); margin-bottom: 16px; }
+  .live-item { display: inline-flex; align-items: center; gap: 6px; margin-right: 20px; font-size: 13px; color: var(--mut); }
+  .live-item b { color: var(--ok); }
+
+  /* Lists (Tasks, Ads, History) */
+  .list-item { display: flex; align-items: center; justify-content: space-between; background: #121828; border: 1px solid var(--line); padding: 12px; border-radius: 10px; margin-bottom: 10px; }
+  .list-item .left { display: flex; align-items: center; gap: 10px; }
+  .list-item img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--line); }
+  .list-item .title { font-weight: 600; font-size: 14px; }
+  .list-item .subtitle { font-size: 12px; color: var(--mut); }
+  .list-item .right { text-align: right; }
+  .list-item .reward { color: var(--ok); font-weight: bold; font-size: 14px; }
+
+  /* Bottom Nav */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #121828; border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 10px 0 15px 0; z-index: 10; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: var(--mut); cursor: pointer; gap: 4px; }
+  .nav-item.active { color: var(--acc); font-weight: bold; }
+  .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+
+  /* Modal */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .modal.active { display: flex; }
+  .modal-content { background: var(--card); width: 100%; max-width: 400px; border-radius: 12px; padding: 20px; border: 1px solid var(--line); }
+
+  /* Ad Timer */
+  .ad-timer { font-size: 24px; font-weight: bold; color: var(--acc); text-align: center; margin: 20px 0; }
 </style>
 </head>
 <body>
-<div class="box">
-  <h1>EarnWallet</h1>
-  <p id="msg">Loading…</p>
+
+<div id="loader">Loading EarnWallet...</div>
+
+<header id="app-header" style="display:none;">
+  <div class="user-info">
+    <img id="userPic" src="" alt="User" />
+    <div>
+      <div class="name" id="userName">User</div>
+      <div style="font-size: 11px; color: var(--mut);">EarnWallet User</div>
+    </div>
+  </div>
+  <div class="balance-badge" id="headerBalance">0 Coins</div>
+</header>
+
+<main id="app-main" style="display:none;">
+  <!-- HOME PAGE -->
+  <section id="page-home" class="page active">
+    <div class="card" style="background: linear-gradient(135deg, #1a2233, #0f1420); text-align: center;">
+      <div style="font-size: 12px; color: var(--mut); text-transform: uppercase;">Total Balance</div>
+      <div style="font-size: 32px; font-weight: bold; color: var(--ok); margin: 8px 0;" id="homeBalance">0</div>
+      <div class="grid-2" style="margin-top: 16px;">
+        <div class="stat-box"><div class="k">Today's Earn</div><div class="v" id="todayEarn">0</div></div>
+        <div class="stat-box"><div class="k">Total Earned</div><div class="v" id="totalEarn">0</div></div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 14px; margin: 16px 0 10px 0;">🔴 Live Withdrawals</h3>
+    <div class="live-feed" id="liveFeed">
+      <div class="live-item">Loading live feed...</div>
+    </div>
+
+    <h3 style="font-size: 14px; margin: 16px 0 10px 0;">📢 Notices & Offers</h3>
+    <div id="homeAds" class="card" style="padding: 12px; text-align: center; font-size: 13px; color: var(--mut);">
+      No active notices right now.
+    </div>
+  </section>
+
+  <!-- ADS PAGE -->
+  <section id="page-ads" class="page">
+    <h3 style="font-size: 16px; margin-bottom: 12px;">Watch & Earn</h3>
+    <div id="adsList"></div>
+  </section>
+
+  <!-- TASKS PAGE -->
+  <section id="page-tasks" class="page">
+    <h3 style="font-size: 16px; margin-bottom: 12px;">Available Tasks</h3>
+    <div id="tasksList"></div>
+  </section>
+
+  <!-- REFER PAGE -->
+  <section id="page-refer" class="page">
+    <div class="card" style="text-align: center;">
+      <h3 style="margin: 0 0 8px 0;">Invite & Earn</h3>
+      <p style="font-size: 13px; color: var(--mut); margin-bottom: 16px;">Invite friends and earn bonus!</p>
+      <div style="background: #0d1322; padding: 12px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 12px; word-break: break-all;" id="refLink">...</div>
+      <button class="btn" onclick="copyRef()">Copy Link</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 14px; margin: 0 0 10px 0;">Your Referrals</h3>
+      <div class="grid-2" style="margin-bottom: 12px;">
+        <div class="stat-box"><div class="k">Total</div><div class="v" id="refTotal">0</div></div>
+        <div class="stat-box"><div class="k">Successful</div><div class="v" id="refSuccess">0</div></div>
+      </div>
+      <div id="refList"></div>
+    </div>
+  </section>
+
+  <!-- WALLET PAGE -->
+  <section id="page-wallet" class="page">
+    <div class="card">
+      <h3 style="font-size: 16px; margin: 0 0 12px 0;">Withdraw Money</h3>
+      <label>Amount (Min: <span id="minW">100</span>)</label>
+      <input type="number" id="wdAmount" placeholder="Enter amount..." />
+      <label>Method</label>
+      <select id="wdMethod">
+        <option value="bKash">bKash</option>
+        <option value="Nagad">Nagad</option>
+        <option value="Binance USDT">Binance USDT</option>
+      </select>
+      <label>Account Number / Address</label>
+      <input type="text" id="wdAccount" placeholder="Enter account..." />
+      <button class="btn" onclick="requestWithdraw()">Request Withdraw</button>
+    </div>
+    
+    <h3 style="font-size: 14px; margin: 16px 0 10px 0;">History</h3>
+    <div id="historyList"></div>
+  </section>
+
+  <!-- PROFILE PAGE -->
+  <section id="page-profile" class="page">
+    <div class="card" style="text-align: center;">
+      <img id="profPic" src="" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px; background: var(--line);" />
+      <h3 style="margin: 0;" id="profName">User</h3>
+      <p style="font-size: 13px; color: var(--mut); margin: 4px 0;" id="profId">ID: 0</p>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 14px; margin: 0 0 10px 0;">Notifications</h3>
+      <div id="notifyList"></div>
+    </div>
+  </section>
+</main>
+
+<!-- BOTTOM NAVIGATION -->
+<nav class="bottom-nav" id="app-nav" style="display:none;">
+  <div class="nav-item active" onclick="switchPage('home', this)">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    Home
+  </div>
+  <div class="nav-item" onclick="switchPage('ads', this)">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    Ads
+  </div>
+  <div class="nav-item" onclick="switchPage('tasks', this)">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    Tasks
+  </div>
+  <div class="nav-item" onclick="switchPage('refer', this)">
+    <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+    Refer
+  </div>
+  <div class="nav-item" onclick="switchPage('wallet', this)">
+    <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+    Wallet
+  </div>
+  <div class="nav-item" onclick="switchPage('profile', this)">
+    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+    Profile
+  </div>
+</nav>
+
+<!-- MODALS -->
+<!-- Task Modal -->
+<div class="modal" id="taskModal">
+  <div class="modal-content">
+    <h3 id="tmTitle" style="margin-top:0;">Task Title</h3>
+    <p id="tmInst" style="font-size:13px; color:var(--mut);"></p>
+    <div id="tmLinkWrap" style="margin-bottom:12px;"></div>
+    <div id="tmProofWrap">
+      <label>Submit Proof (Link or Code)</label>
+      <input type="text" id="tmProof" placeholder="https://... or code" />
+    </div>
+    <button class="btn" onclick="submitTask()">Submit Task</button>
+    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('taskModal')">Cancel</button>
+  </div>
 </div>
+
+<!-- Ad Modal -->
+<div class="modal" id="adModal">
+  <div class="modal-content" style="text-align:center;">
+    <h3 style="margin-top:0;">Watching Ad</h3>
+    <div class="ad-timer" id="adTimer">20s</div>
+    <p style="font-size:12px; color:var(--mut);" id="adUrlText">Please wait...</p>
+    <button class="btn" id="adClaimBtn" style="display:none;" onclick="claimAd()">Claim Reward</button>
+    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('adModal')">Close</button>
+  </div>
+</div>
+
 <script>
 const tg = window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
+const INIT = tg?.initData || '';
 
-(async () => {
-  const msg = document.getElementById('msg');
-  const init = tg?.initData || '';
-  if (!init) {
-    msg.textContent = 'Please open this app from the EarnWallet bot.';
+let state = {
+  user: {},
+  config: {},
+  ads: [],
+  tasks: [],
+  currentAd: null,
+  currentTask: null
+};
+
+function el(id) { return document.getElementById(id); }
+function h(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `tma ${INIT}`,
+      ...(opts.headers || {})
+    }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'API Error');
+  return data;
+}
+
+async function boot() {
+  if (!INIT) {
+    el('loader').innerHTML = '❌ Please open from Telegram Bot.';
     return;
   }
   try {
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `tma ${init}` }
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
-    msg.textContent = `Welcome, ${data.data.firstName || 'friend'}! Balance: ${data.data.balance} coins`;
+    // 1. Login/Register
+    await api('/api/auth', { method: 'POST' });
+    // 2. Load Config
+    const cfg = await api('/api/app-config');
+    state.config = cfg.data;
+    if (state.config.maintenance) {
+      el('loader').innerHTML = `🛠 Maintenance<br><span style="font-size:14px;color:#888;">${h(state.config.maintenanceMessage)}</span>`;
+      return;
+    }
+    // 3. Load Profile
+    await loadProfile();
+    
+    // Show UI
+    el('loader').style.display = 'none';
+    el('app-header').style.display = 'flex';
+    el('app-main').style.display = 'block';
+    el('app-nav').style.display = 'flex';
+
+    // Load initial data
+    loadLiveFeed();
+    loadAds();
+    loadTasks();
+    loadReferrals();
+    loadWallet();
+    loadNotifications();
+    loadHomeAds();
+
   } catch (e) {
-    msg.textContent = e.message;
+    el('loader').innerHTML = `❌ Error: ${h(e.message)}`;
   }
-})();
+}
+
+async function loadProfile() {
+  const { data } = await api('/api/me');
+  state.user = data;
+  
+  // Update UI
+  el('userName').textContent = data.firstName || 'User';
+  el('userPic').src = data.photoUrl || 'https://ui-avatars.com/api/?name=' + (data.firstName || 'U') + '&background=2a3550&color=fff';
+  el('headerBalance').textContent = fmt(data.balance) + ' Coins';
+  el('homeBalance').textContent = fmt(data.balance);
+  el('todayEarn').textContent = fmt(data.todayEarnings);
+  el('totalEarn').textContent = fmt(data.totalEarnings);
+  
+  el('profPic').src = el('userPic').src;
+  el('profName').textContent = data.firstName || 'User';
+  el('profId').textContent = 'ID: ' + data.telegramId;
+}
+
+function switchPage(pageId, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el('page-' + pageId).classList.add('active');
+  navEl.classList.add('active');
+}
+
+// --- HOME & LIVE FEED ---
+async function loadLiveFeed() {
+  try {
+    const { data } = await api('/api/live-withdrawals');
+    if (!data.length) {
+      el('liveFeed').innerHTML = '<div class="live-item" style="color:var(--mut)">No recent withdrawals.</div>';
+      return;
+    }
+    el('liveFeed').innerHTML = data.map(x => `
+      <div class="live-item">
+        🟢 <b>${h(x.name)}</b> withdrew <b>${h(x.amount)}$</b> via ${h(x.method)}
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function loadHomeAds() {
+  try {
+    const { data } = await api('/api/ad-placements');
+    if (data && data.top && data.top.html) {
+      el('homeAds').innerHTML = data.top.html;
+      el('homeAds').style.padding = '0';
+      el('homeAds').style.background = 'transparent';
+      el('homeAds').style.border = 'none';
+    }
+  } catch(e) {}
+}
+
+// --- ADS ---
+async function loadAds() {
+  try {
+    const { data } = await api('/api/ads');
+    state.ads = data;
+    if (!data.length) {
+      el('adsList').innerHTML = '<p class="muted" style="text-align:center;">No ads available right now.</p>';
+      return;
+    }
+    el('adsList').innerHTML = data.map(a => `
+      <div class="list-item">
+        <div class="left">
+          ${a.bannerUrl ? `<img src="${h(a.bannerUrl)}" />` : `<div style="width:40px;height:40px;background:var(--line);border-radius:8px;"></div>`}
+          <div>
+            <div class="title">${h(a.title)}</div>
+            <div class="subtitle">${a.duration} seconds</div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="reward">+${h(a.reward)}</div>
+          <button class="btn sm" style="margin-top:4px;" onclick='startAd("${h(a.id)}")'>Watch</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function startAd(id) {
+  try {
+    const { data } = await api(`/api/ads/${id}/start`, { method: 'POST' });
+    state.currentAd = data;
+    
+    el('adModal').classList.add('active');
+    el('adUrlText').innerHTML = `Opening link... <br><a href="${h(data.url)}" target="_blank" style="color:var(--acc)">Click here if not opened</a>`;
+    window.open(data.url, '_blank');
+    
+    let timeLeft = data.duration;
+    el('adTimer').textContent = timeLeft + 's';
+    el('adClaimBtn').style.display = 'none';
+    
+    const timer = setInterval(() => {
+      timeLeft--;
+      el('adTimer').textContent = timeLeft + 's';
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        el('adTimer').textContent = 'Done!';
+        el('adClaimBtn').style.display = 'block';
+      }
+    }, 1000);
+  } catch(e) { alert(e.message); }
+}
+
+async function claimAd() {
+  try {
+    const { data } = await api('/api/ads/complete', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: state.currentAd.sessionId })
+    });
+    alert(`Success! You earned ${data.reward} coins.`);
+    closeModal('adModal');
+    loadProfile();
+    loadAds();
+  } catch(e) { alert(e.message); }
+}
+
+// --- TASKS ---
+async function loadTasks() {
+  try {
+    const { data } = await api('/api/tasks');
+    state.tasks = data;
+    if (!data.length) {
+      el('tasksList').innerHTML = '<p class="muted" style="text-align:center;">No tasks available right now.</p>';
+      return;
+    }
+    el('tasksList').innerHTML = data.map(t => {
+      const isDone = t.submissionStatus === 'pending' || t.submissionStatus === 'approved';
+      return `
+      <div class="list-item">
+        <div class="left">
+          ${t.logoUrl ? `<img src="${h(t.logoUrl)}" />` : `<div style="width:40px;height:40px;background:var(--line);border-radius:8px;"></div>`}
+          <div>
+            <div class="title">${h(t.title)}</div>
+            <div class="subtitle">${isDone ? 'Already Submitted' : 'Available'}</div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="reward">+${h(t.reward)}</div>
+          ${isDone 
+            ? `<button class="btn sm ghost" disabled style="margin-top:4px;">Done</button>`
+            : `<button class="btn sm" style="margin-top:4px;" onclick='openTask("${h(t.id)}")'>Start</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+function openTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  state.currentTask = t;
+  
+  el('tmTitle').textContent = t.title;
+  el('tmInst').textContent = t.instruction || 'Complete the task to earn reward.';
+  
+  if (t.url) {
+    el('tmLinkWrap').innerHTML = `<a href="${h(t.url)}" target="_blank" class="btn ghost" style="display:block; margin-bottom:12px;">Go to Link 🔗</a>`;
+  } else {
+    el('tmLinkWrap').innerHTML = '';
+  }
+  
+  el('tmProofWrap').style.display = t.requiresProof ? 'block' : 'none';
+  el('tmProof').value = '';
+  
+  el('taskModal').classList.add('active');
+}
+
+async function submitTask() {
+  const proof = el('tmProof').value.trim();
+  if (state.currentTask.requiresProof && !proof) {
+    return alert('Please provide proof (link or code).');
+  }
+  try {
+    await api(`/api/tasks/${state.currentTask.id}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ proof })
+    });
+    alert('Task submitted successfully! Wait for admin approval.');
+    closeModal('taskModal');
+    loadTasks();
+  } catch(e) { alert(e.message); }
+}
+
+// --- REFERRALS ---
+async function loadReferrals() {
+  try {
+    const { data } = await api('/api/referrals');
+    el('refLink').textContent = data.link;
+    el('refTotal').textContent = data.totalCount;
+    el('refSuccess').textContent = data.successfulCount;
+    
+    if (!data.referrals.length) {
+      el('refList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No referrals yet.</p>';
+      return;
+    }
+    el('refList').innerHTML = data.referrals.map(r => `
+      <div class="list-item" style="padding:10px;">
+        <div class="left">
+          <div>
+            <div class="title" style="font-size:13px;">${h(r.firstName)} ${h(r.lastName)}</div>
+            <div class="subtitle" style="font-size:11px;">ID: ${h(r.telegramId)}</div>
+          </div>
+        </div>
+        <div class="right">
+          <div style="font-size:11px; color:${r.status === 'successful' ? 'var(--ok)' : 'var(--warn)'}">${h(r.status)}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+function copyRef() {
+  const link = el('refLink').textContent;
+  navigator.clipboard.writeText(link).then(() => {
+    alert('Referral link copied!');
+  });
+}
+
+// --- WALLET ---
+async function loadWallet() {
+  el('minW').textContent = state.config.minWithdraw || 100;
+  try {
+    const { data } = await api('/api/history');
+    if (!data.length) {
+      el('historyList').innerHTML = '<p class="muted" style="text-align:center;">No transactions yet.</p>';
+      return;
+    }
+    el('historyList').innerHTML = data.map(x => `
+      <div class="list-item" style="padding:10px;">
+        <div class="left">
+          <div>
+            <div class="title" style="font-size:13px;">${h(x.type.toUpperCase())}</div>
+            <div class="subtitle" style="font-size:11px;">${new Date(x.createdAt).toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="right">
+          <div style="font-size:14px; font-weight:bold; color:${x.amount > 0 ? 'var(--ok)' : 'var(--bad)'}">
+            ${x.amount > 0 ? '+' : ''}${x.amount}
+          </div>
+          <div style="font-size:10px; color:var(--mut);">${h(x.status)}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function requestWithdraw() {
+  const amount = Number(el('wdAmount').value);
+  const method = el('wdMethod').value;
+  const account = el('wdAccount').value.trim();
+  
+  if (!amount || !account) return alert('Fill all fields');
+  
+  try {
+    await api('/api/withdraw', {
+      method: 'POST',
+      body: JSON.stringify({ amount, method, account })
+    });
+    alert('Withdrawal requested! Wait for admin approval.');
+    el('wdAmount').value = '';
+    el('wdAccount').value = '';
+    loadWallet();
+    loadProfile();
+  } catch(e) { alert(e.message); }
+}
+
+// --- NOTIFICATIONS ---
+async function loadNotifications() {
+  try {
+    // এখানে আমরা সরাসরি অ্যাডমিন নোটিফিকেশন API কল করছি না কারণ ওটা adminAuth 
+    // তবে আপাতত খালি রাখছি, ভবিষ্যতে user-specific API বানানো যাবে
+    el('notifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No new notifications.</p>';
+  } catch(e) {}
+}
+
+function closeModal(id) {
+  el(id).classList.remove('active');
+}
+
+boot();
 </script>
 </body>
 </html>
