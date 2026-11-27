@@ -1142,7 +1142,7 @@ app.get('/api/ad-placements', telegramAuth, async (req, res) => {
 });
 
 // ==========================================
-// ADMIN LIVE WITHDRAWALS (FAKE FEED)
+// LIVE WITHDRAWALS (FAKE FEED)
 // ==========================================
 
 app.get('/api/live-withdrawals', telegramAuth, async (req, res) => {
@@ -1293,7 +1293,7 @@ app.post('/api/admin/ads', adminAuth, async (req, res) => {
   try {
     const title = String(req.body.title || '').trim();
     const url = new URL(String(req.body.url || ''));
-    const bannerUrl = String(req.body.bannerUrl || '').trim(); // নতুন
+    const bannerUrl = String(req.body.bannerUrl || '').trim();
     const reward = Number(req.body.reward);
     const duration = Number(req.body.duration);
 
@@ -1347,9 +1347,9 @@ app.get('/api/admin/tasks', adminAuth, async (req, res) => {
 app.post('/api/admin/tasks', adminAuth, async (req, res) => {
   try {
     const title = String(req.body.title || '').trim();
-    const instruction = String(req.body.instruction || '').trim(); // নতুন
+    const instruction = String(req.body.instruction || '').trim();
     const url = String(req.body.url || '').trim();
-    const logoUrl = String(req.body.logoUrl || '').trim(); // নতুন
+    const logoUrl = String(req.body.logoUrl || '').trim();
     const reward = Number(req.body.reward);
     const requiresProof = req.body.requiresProof === true;
 
@@ -1382,6 +1382,32 @@ app.delete('/api/admin/tasks/:id', adminAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     sendError(res, error, 'Could not delete task.');
+  }
+});
+
+app.patch('/api/admin/tasks/:id', adminAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const ref = db.collection('tasks').doc(req.params.id);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ success: false, error: 'Task not found' });
+
+    const updates = {};
+    
+    if (req.body.title !== undefined) updates.title = String(req.body.title).trim();
+    if (req.body.instruction !== undefined) updates.instruction = String(req.body.instruction).trim();
+    if (req.body.url !== undefined) updates.url = String(req.body.url).trim();
+    if (req.body.logoUrl !== undefined) updates.logoUrl = String(req.body.logoUrl).trim();
+    if (req.body.reward !== undefined) updates.reward = Number(req.body.reward);
+    if (req.body.requiresProof !== undefined) updates.requiresProof = req.body.requiresProof === true;
+    if (req.body.status !== undefined) updates.status = String(req.body.status);
+
+    updates.updatedAt = new Date().toISOString();
+
+    await ref.update(updates);
+    res.json({ success: true, message: 'Task updated successfully' });
+  } catch (error) {
+    sendError(res, error, 'Could not update task.');
   }
 });
 
