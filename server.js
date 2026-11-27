@@ -623,6 +623,41 @@ app.patch('/api/profile', telegramAuth, async (req, res) => {
 });
 
 // ==========================================
+// TELEGRAM CHANNEL VERIFICATION
+// ==========================================
+
+app.post('/api/verify-channel', telegramAuth, async (req, res) => {
+  try {
+    const uid = req.telegramUser.id;
+    
+    // আপনার চ্যানেলের ইউজারনেম ( @ ছাড়া )
+    const channels = ['EarnWallet_Official', 'All_Official_Channal']; 
+
+    for (const channel of channels) {
+      try {
+        const result = await telegramApi('getChatMember', {
+          chat_id: `@${channel}`,
+          user_id: uid
+        });
+
+        const status = result.status;
+        // status: 'creator', 'administrator', 'member', 'restricted'
+        if (status !== 'creator' && status !== 'administrator' && status !== 'member') {
+          return res.json({ success: false, joined: false, error: `Join our channel @${channel} first.` });
+        }
+      } catch (err) {
+        console.error(`Channel check failed for @${channel}:`, err.message);
+        return res.json({ success: false, joined: false, error: `Could not verify. Please join @${channel} and try again.` });
+      }
+    }
+
+    res.json({ success: true, joined: true, message: 'Verified successfully' });
+  } catch (error) {
+    sendError(res, error, 'Could not verify channel.');
+  }
+});
+
+// ==========================================
 // USER APP CONFIG
 // ==========================================
 
