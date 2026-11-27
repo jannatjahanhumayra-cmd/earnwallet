@@ -8,12 +8,14 @@ let state = {
   ads: [],
   tasks: [],
   currentAd: null,
-  currentTask: null
+  currentTask: null,
+  uploadedImageBase64: null // ছবি সেভ করার জন্য
 };
 
 function el(id) { return document.getElementById(id); }
 function h(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function fmt(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 3 }); }
+function fmt(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+function toUSD(coins) { return (Number(coins) / 100).toFixed(3); } // 100 Coins = $1.00
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -29,9 +31,32 @@ async function api(path, opts = {}) {
   return data;
 }
 
+// --- CHANNEL VERIFY LOGIC ---
+function checkChannelGate() {
+  // লোকাল স্টোরেজে চেক করবে ইউজার আগে ভেরিফাই করেছে কি না
+  const isVerified = localStorage.getItem('channel_verified');
+  if (!isVerified) {
+    el('loader').style.display = 'none';
+    el('channelGate').style.display = 'flex';
+    return false;
+  }
+  return true;
+}
+
+function verifyChannel() {
+  // এখানে আমরা ধরে নিচ্ছি ইউজার জয়েন করেছে (রিয়েল চেক করতে Telegram Bot API লাগবে)
+  localStorage.setItem('channel_verified', 'true');
+  el('channelGate').style.display = 'none';
+  
+  // অ্যাপ লোড করা
+  el('loader').style.display = 'flex';
+  boot();
+}
+// ---------------------------
+
 async function boot() {
   if (!INIT) {
-    el('loader').innerHTML = '❌ টেলিগ্রাম বট থেকে ওপেন করুন।';
+    el('loader').innerHTML = '❌ Open from Telegram Bot.';
     return;
   }
   try {
@@ -40,7 +65,7 @@ async function boot() {
     state.config = cfg.data;
     
     if (state.config.maintenance) {
-      el('loader').innerHTML = `🛠 মেইনটেন্যান্স<br><span style="font-size:14px;color:#888;margin-top:10px;display:block;">${h(state.config.maintenanceMessage)}</span>`;
+      el('loader').innerHTML = `🛠 Maintenance<br><span style="font-size:14px;color:#888;margin-top:10px;display:block;">${h(state.config.maintenanceMessage)}</span>`;
       return;
     }
     
@@ -60,7 +85,7 @@ async function boot() {
     updatePaymentOptions();
 
   } catch (e) {
-    el('loader').innerHTML = `❌ এরর: ${h(e.message)}`;
+    el('loader').innerHTML = `❌ Error: ${h(e.message)}`;
   }
 }
 
@@ -69,20 +94,20 @@ async function loadProfile() {
   state.user = data;
   
   const picUrl = data.photoUrl || 'https://ui-avatars.com/api/?name=' + (data.firstName || 'U') + '&background=141a29&color=ff7f00';
-  const usdBalance = (Number(data.balance) / 100).toFixed(3); 
+  const usdBalance = toUSD(data.balance); 
   
   el('userName').textContent = data.firstName || 'User';
   el('headerId').textContent = 'ID: ' + data.telegramId;
   el('userPic').src = picUrl;
   el('headerBalance').innerHTML = `<span style="font-size:10px">$</span> ` + usdBalance;
   
-  el('homeBalance').innerHTML = usdBalance + ' <span>USDT</span>';
-  el('todayEarn').textContent = fmt(data.todayEarnings);
-  el('totalEarn').textContent = fmt(data.totalEarnings);
+  el('homeBalance').innerHTML = '$' + usdBalance;
+  el('todayEarn').textContent = fmt(data.todayEarnings) + ' Coins';
+  el('totalEarn').textContent = fmt(data.totalEarnings) + ' Coins';
   
   el('profPic').src = picUrl;
   el('profName').textContent = data.firstName || 'User';
-  el('profWalletBalance').innerHTML = usdBalance + ' <span>USDT</span>';
+  el('profWalletBalance').innerHTML = '$' + usdBalance;
   el('profBalanceTop').textContent = data.balance;
 }
 
@@ -110,7 +135,7 @@ async function loadLiveFeed() {
   try {
     const { data } = await api('/api/live-withdrawals');
     if (!data.length) {
-      el('liveFeed').innerHTML = '<div class="live-item" style="color:var(--mut)">সাম্প্রতিক কোনো উইথড্র নেই।</div>';
+      el('liveFeed').innerHTML = '<div class="live-item" style="color:var(--mut)">No recent withdrawals.</div>';
       return;
     }
     el('liveFeed').innerHTML = data.map(x => `
@@ -126,7 +151,7 @@ async function loadAds() {
     const { data } = await api('/api/ads');
     state.ads = data;
     if (!data.length) {
-      el('adsList').innerHTML = '<p class="muted" style="text-align:center;">এখন কোনো অ্যাড নেই।</p>';
+      el('adsList').innerHTML = '<p class="muted" style="text-align:center;">No ads available.</p>';
       return;
     }
     el('adsList').innerHTML = data.map(a => `
@@ -135,12 +160,12 @@ async function loadAds() {
           ${a.bannerUrl ? `<img src="${h(a.bannerUrl)}" onerror="this.style.display='none'" />` : `<div style="width:50px;height:50px;background:var(--line);border-radius:12px;"></div>`}
           <div>
             <div class="title">${h(a.title)}</div>
-            <div class="subtitle">${a.duration} সেকেন্ড</div>
+            <div class="subtitle">${a.duration} seconds</div>
           </div>
         </div>
         <div class="right">
           <div class="reward">+${h(a.reward)}</div>
-          <button class="btn sm" style="margin-top:8px;" onclick='startAd("${h(a.id)}")'>দেখুন</button>
+          <button class="btn sm" style="margin-top:8px;" onclick='startAd("${h(a.id)}")'>Watch</button>
         </div>
       </div>
     `).join('');
@@ -153,7 +178,7 @@ async function startAd(id) {
     state.currentAd = data;
     
     el('adModal').classList.add('active');
-    el('adUrlText').innerHTML = `লিংক ওপেন হচ্ছে... <br><a href="${h(data.url)}" target="_blank" style="color:var(--acc)">এখানে ক্লিক করুন</a>`;
+    el('adUrlText').innerHTML = `Opening link... <br><a href="${h(data.url)}" target="_blank" style="color:var(--acc)">Click here if not opened</a>`;
     window.open(data.url, '_blank');
     
     let timeLeft = data.duration;
@@ -165,7 +190,7 @@ async function startAd(id) {
       el('adTimer').textContent = timeLeft + 's';
       if (timeLeft <= 0) {
         clearInterval(timer);
-        el('adTimer').textContent = 'সম্পন্ন!';
+        el('adTimer').textContent = 'Done!';
         el('adClaimBtn').style.display = 'flex';
       }
     }, 1000);
@@ -178,7 +203,7 @@ async function claimAd() {
       method: 'POST',
       body: JSON.stringify({ sessionId: state.currentAd.sessionId })
     });
-    alert(`সফল! আপনি ${data.reward} কয়েন পেয়েছেন।`);
+    alert(`Success! You earned ${data.reward} coins.`);
     closeModal('adModal');
     loadProfile();
     loadAds();
@@ -190,12 +215,12 @@ async function loadTasks() {
     const { data } = await api('/api/tasks');
     state.tasks = data;
     if (!data.length) {
-      el('tasksList').innerHTML = '<p class="muted" style="text-align:center;">এখন কোনো কাজ নেই।</p>';
+      el('tasksList').innerHTML = '<p class="muted" style="text-align:center;">No tasks available.</p>';
       return;
     }
     el('tasksList').innerHTML = data.map(t => {
       const isDone = t.submissionStatus === 'pending' || t.submissionStatus === 'approved';
-      const statusStr = t.submissionStatus === 'pending' ? 'রিভিউতে আছে' : (t.submissionStatus === 'approved' ? 'সম্পন্ন' : 'উপলব্ধ');
+      const statusStr = t.submissionStatus === 'pending' ? 'Under Review' : (t.submissionStatus === 'approved' ? 'Completed' : 'Available');
       
       return `
       <div class="list-item">
@@ -209,49 +234,79 @@ async function loadTasks() {
         <div class="right">
           <div class="reward">+${h(t.reward)}</div>
           ${isDone 
-            ? `<button class="btn sm ghost" disabled style="margin-top:8px;">সম্পন্ন</button>`
-            : `<button class="btn sm" style="margin-top:8px;" onclick='openTask("${h(t.id)}")'>শুরু</button>`}
+            ? `<button class="btn sm ghost" disabled style="margin-top:8px;">Done</button>`
+            : `<button class="btn sm" style="margin-top:8px;" onclick='openTask("${h(t.id)}")'>Start</button>`}
         </div>
       </div>`;
     }).join('');
   } catch(e) {}
 }
 
+// --- TASK OPEN & IMAGE UPLOAD LOGIC ---
 function openTask(id) {
   const t = state.tasks.find(x => x.id === id);
   if (!t) return;
   state.currentTask = t;
+  state.uploadedImageBase64 = null; // রিসেট
   
   el('tmTitle').textContent = t.title;
-  el('tmInst').textContent = t.instruction || 'কাজটি সম্পন্ন করে রিওয়ার্ড নিন।';
+  el('tmInst').textContent = t.instruction || 'Complete the task to earn reward.';
   
   if (t.url) {
-    el('tmLinkWrap').innerHTML = `<a href="${h(t.url)}" target="_blank" class="btn ghost" style="text-decoration:none;">লিংকে যান 🔗</a>`;
+    el('tmLinkWrap').innerHTML = `<a href="${h(t.url)}" target="_blank" class="btn ghost" style="text-decoration:none;">Go to Link 🔗</a>`;
   } else {
     el('tmLinkWrap').innerHTML = '';
   }
   
   el('tmProofWrap').style.display = t.requiresProof ? 'block' : 'none';
   el('tmProof').value = '';
+  el('uploadPreview').innerHTML = '📸 Click to upload screenshot';
+  el('tmImage').value = '';
   
   el('taskModal').classList.add('active');
 }
 
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+
+  // ছবি প্রিভিউ
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    state.uploadedImageBase64 = e.target.result;
+    el('uploadPreview').innerHTML = `<img src="${e.target.result}" style="max-width:100%; max-height:100px; border-radius:8px;" />`;
+    el('uploadPreview').style.color = '#fff';
+  };
+  reader.readAsDataURL(file);
+}
+
 async function submitTask() {
-  const proof = el('tmProof').value.trim();
-  if (state.currentTask.requiresProof && !proof) {
-    return alert('অনুগ্রহ করে প্রুফ দিন।');
+  const textProof = el('tmProof').value.trim();
+  const hasImage = state.uploadedImageBase64 !== null;
+  
+  if (state.currentTask.requiresProof && !textProof && !hasImage) {
+    return alert('Please provide a screenshot or code as proof.');
   }
+  
+  // এখানে আমরা প্রুফ হিসেবে ইমেজের ডাটা (Base64) অথবা টেক্সট পাঠাচ্ছি
+  // (সার্ভারে পাঠানোর জন্য ইমেজ ছোট করা ভালো, তবে আপাতত ডেমো হিসেবে পাঠাচ্ছি)
+  const finalProof = hasImage ? state.uploadedImageBase64 : textProof;
+  
+  if (hasImage && finalProof.length > 900000) {
+    return alert('Image is too large. Please select a smaller screenshot.');
+  }
+
   try {
     await api(`/api/tasks/${state.currentTask.id}/submit`, {
       method: 'POST',
-      body: JSON.stringify({ proof })
+      body: JSON.stringify({ proof: finalProof })
     });
-    alert('কাজ সাবমিট হয়েছে! অ্যাডমিন এপ্রুভ করার জন্য অপেক্ষা করুন।');
+    alert('Task submitted successfully! Please wait for admin approval.');
     closeModal('taskModal');
     loadTasks();
   } catch(e) { alert(e.message); }
 }
+// ------------------------------------
 
 async function loadReferrals() {
   try {
@@ -261,7 +316,7 @@ async function loadReferrals() {
     el('refTotalTop').textContent = data.totalCount;
     
     if (!data.referrals.length) {
-      el('refList').innerHTML = '<p class="muted" style="text-align:center; font-size:13px;">কোনো রেফারেল নেই।</p>';
+      el('refList').innerHTML = '<p class="muted" style="text-align:center; font-size:13px;">No referrals yet.</p>';
       return;
     }
     el('refList').innerHTML = data.referrals.map(r => `
@@ -283,7 +338,7 @@ async function loadReferrals() {
 function copyRef() {
   const link = el('refLink').textContent;
   navigator.clipboard.writeText(link).then(() => {
-    alert('রেফারেল লিংক কপি হয়েছে!');
+    alert('Referral link copied!');
   });
 }
 
@@ -307,19 +362,19 @@ function updatePaymentOptions() {
   }
   
   if (!hasMethod) {
-    select.innerHTML = `<option value="">কোনো মেথড চালু নেই</option>`;
+    select.innerHTML = `<option value="">No payment methods available</option>`;
   }
 }
 
 async function loadWallet() {
   el('minW').textContent = state.config.minWithdraw || 100;
   const reqRef = state.config.requiredReferrals !== undefined ? state.config.requiredReferrals : 10;
-  el('wdRuleText').textContent = `উত্তোলনের জন্য কমপক্ষে ${reqRef} টি সফল রেফারেল প্রয়োজন।`;
+  el('wdRuleText').textContent = `You need at least ${reqRef} successful referral(s) to enable withdrawal.`;
   
   try {
     const { data } = await api('/api/history');
     if (!data.length) {
-      el('historyList').innerHTML = '<p class="muted" style="text-align:center;">কোনো হিস্টোরি নেই।</p>';
+      el('historyList').innerHTML = '<p class="muted" style="text-align:center;">No history found.</p>';
       return;
     }
     el('historyList').innerHTML = data.map(x => {
@@ -348,14 +403,14 @@ async function requestWithdraw() {
   const method = el('wdMethod').value;
   const account = el('wdAccount').value.trim();
   
-  if (!amount || !account || !method) return alert('সব ঘর পূরণ করুন।');
+  if (!amount || !account || !method) return alert('Please fill all fields.');
   
   try {
     await api('/api/withdraw', {
       method: 'POST',
       body: JSON.stringify({ amount, method, account })
     });
-    alert('উইথড্র রিকোয়েস্ট পাঠানো হয়েছে! অ্যাডমিন এপ্রুভ করলে টাকা পাবেন।');
+    alert('Withdrawal requested! Wait for admin approval.');
     el('wdAmount').value = '';
     el('wdAccount').value = '';
     loadWallet();
@@ -367,7 +422,7 @@ async function loadNotifications() {
   try {
     const { data } = await api('/api/notifications');
     if (!data || data.length === 0) {
-      el('notifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">কোনো নোটিফিকেশন নেই।</p>';
+      el('notifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No notifications.</p>';
     } else {
       el('notifyList').innerHTML = data.map(n => `
         <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
@@ -378,6 +433,7 @@ async function loadNotifications() {
       `).join('');
     }
 
+    // হোম পেজের টপ নোটিশ (ব্যানার স্লট থেকে)
     const placementRes = await api('/api/ad-placements');
     const placements = placementRes.data;
     
@@ -386,7 +442,17 @@ async function loadNotifications() {
       el('homeNotices').style.background = 'transparent';
       el('homeNotices').style.border = 'none';
     } else {
-      el('homeNotices').innerHTML = '<div class="card" style="text-align: center; font-size: 13px; color: var(--mut);">কোনো নোটিশ নেই</div>';
+      // যদি অ্যাডমিন প্যানেল থেকে কোনো নোটিশ না দেওয়া হয়, তবে ডিফল্ট নোটিফিকেশন দেখাবে
+      if(data && data.length > 0) {
+        const n = data[0]; // সর্বশেষ নোটিফিকেশন
+        el('homeNotices').innerHTML = `
+        <div class="card" style="background: rgba(255,127,0,0.1); border-color: var(--acc);">
+          <div style="font-weight: 700; color: var(--acc); margin-bottom: 4px;">${h(n.title)}</div>
+          <div style="font-size: 13px; color: var(--txt);">${h(n.message)}</div>
+        </div>`;
+      } else {
+        el('homeNotices').innerHTML = '<div class="card" style="text-align: center; font-size: 13px; color: var(--mut);">No new notices.</div>';
+      }
     }
   } catch(e) {}
 }
@@ -395,4 +461,10 @@ function closeModal(id) {
   el(id).classList.remove('active');
 }
 
-boot();
+// --- STARTUP LOGIC ---
+window.addEventListener('load', () => {
+  // চেক করা ইউজার ভেরিফাইড কি না
+  if (checkChannelGate()) {
+    boot();
+  }
+});
