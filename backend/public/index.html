@@ -15,8 +15,8 @@
   <h2 style="color:var(--acc); font-size: 22px; margin-bottom: 8px;">Join Our Channels</h2>
   <p style="color:var(--mut); font-size: 13px; margin-bottom: 20px;">You must join our official channels to use the app.</p>
   
-  <a href="https://t.me/EarnWallet_Official" target="_blank" class="btn" style="text-decoration:none; margin-bottom:8px;">Join Official Channel</a>
-  <a href="https://t.me/All_Official_Channal" target="_blank" class="btn ghost" style="text-decoration:none; margin-bottom:12px;">Join Backup Channel</a>
+  <a href="#" id="gateChannel1" target="_blank" class="btn" style="text-decoration:none; margin-bottom:8px;">Join Official Channel</a>
+  <a href="#" id="gateChannel2" target="_blank" class="btn ghost" style="text-decoration:none; margin-bottom:12px;">Join Backup Channel</a>
   
   <button class="btn" id="verifyBtn" style="background:var(--ok); box-shadow: 0 4px 15px rgba(46,204,113,0.4);" onclick="verifyChannel()">I have joined, Verify</button>
   <p id="verifyMsg" style="font-size:12px; margin-top:10px;"></p>
@@ -39,16 +39,23 @@
   <!-- HOME PAGE -->
   <section id="page-home" class="page active">
     
-    <!-- Notification Box (Clickable) -->
+    <!-- Notification Marquee -->
     <div class="notice-box" onclick="openNotificationsModal()">
       <div style="display:flex; align-items:center; gap:8px;">
         <span style="font-size:16px;">📢</span>
-        <span style="font-weight:600; font-size:13px;">Announcements</span>
       </div>
-      <div class="notice-marquee" id="noticeMarquee">
-        <span>Loading notices...</span>
+      <div class="notice-marquee">
+        <span id="noticeMarquee">Loading notices...</span>
       </div>
       <div style="color:var(--mut); font-size:16px;">›</div>
+    </div>
+
+    <!-- Scrolling Banner (Ad Placements Top) -->
+    <div class="scroll-banner-wrapper">
+      <div class="scroll-banner" id="scrollBanner">
+        <!-- Dynamic Banner Here -->
+        <div class="banner-item">Welcome to EarnWallet! Start earning now.</div>
+      </div>
     </div>
 
     <div class="card" style="background: linear-gradient(145deg, #141a29, #0b0f19); border-color: var(--acc);">
@@ -75,41 +82,35 @@
 
   <!-- TASKS PAGE -->
   <section id="page-tasks" class="page">
-    
-    <!-- Search & Filter -->
     <div class="search-bar">
       <input type="text" id="taskSearch" placeholder="Search tasks..." oninput="loadTasks()" />
     </div>
-    
     <div class="tabs-scroll">
       <div class="tab-btn active" onclick="switchTaskTab('all', this)">All</div>
       <div class="tab-btn" onclick="switchTaskTab('telegram', this)">Telegram</div>
       <div class="tab-btn" onclick="switchTaskTab('twitter', this)">Twitter</div>
       <div class="tab-btn" onclick="switchTaskTab('youtube', this)">YouTube</div>
     </div>
-
     <div id="tasksList"></div>
     <div id="adsList" style="display:none;"></div>
   </section>
 
   <!-- RANK PAGE (Leaderboard) -->
   <section id="page-rank" class="page">
-    <h2 style="font-size: 20px; margin: 0 0 12px 0;">Leaderboard</h2>
-    <div class="card" style="background: linear-gradient(135deg, #ff7f00, #ff5500); color: #fff; text-align: center;">
+    <h2 style="font-size: 20px; margin: 0 0 12px 0;">Leaderboard (Top Withdrawers)</h2>
+    
+    <!-- Referral Card -->
+    <div class="card" style="background: linear-gradient(135deg, #ff7f00, #ff5500); color: #fff; text-align: center; margin-bottom: 16px;">
       <h3 style="margin: 0 0 8px 0; font-size: 16px;">Invite Friends</h3>
       <div style="display: flex; justify-content: space-around; margin-bottom: 12px;">
         <div><div style="font-size: 10px; opacity: 0.8;">Commission</div><div style="font-size: 14px; font-weight: 700;">$0.00</div></div>
         <div><div style="font-size: 10px; opacity: 0.8;">Invited</div><div style="font-size: 14px; font-weight: 700;" id="refTotalTop">0</div></div>
-        <div><div style="font-size: 10px; opacity: 0.8;">Rate</div><div style="font-size: 14px; font-weight: 700;">10%</div></div>
       </div>
       <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; font-size: 11px; margin-bottom: 10px; word-break: break-all;" id="refLinkTop">...</div>
       <button class="btn ghost" style="background: #fff; color: #ff5500; box-shadow: none;" onclick="copyRef()">🔗 Copy Link</button>
     </div>
 
-    <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
-      <div><div style="font-size: 20px; font-weight: 800; color: var(--acc);">100+</div><div style="font-size: 11px; color: var(--mut);">Total Tasks</div></div>
-      <div><div style="font-size: 20px; font-weight: 800; color: var(--ok);">$500+</div><div style="font-size: 11px; color: var(--mut);">Total Paid</div></div>
-    </div>
+    <div id="leaderboardList"></div>
   </section>
 
   <!-- CAMPAIGN (REFER) PAGE -->
@@ -120,7 +121,6 @@
       <div style="background: var(--bg); padding: 10px; border-radius: 6px; border: 1px solid var(--line); margin-bottom: 10px; word-break: break-all; font-size: 12px;" id="refLink">...</div>
       <button class="btn" onclick="copyRef()">Copy Link</button>
     </div>
-    
     <h3 class="card-title">Your Referrals</h3>
     <div id="refList"></div>
   </section>
@@ -128,6 +128,7 @@
   <!-- PROFILE PAGE -->
   <section id="page-profile" class="page">
     <h2 style="font-size: 20px; margin: 0 0 12px 0;">Profile</h2>
+    
     <div class="card profile-card">
       <div class="profile-header">
         <div style="display: flex; gap: 12px; align-items: center;">
@@ -143,10 +144,23 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title" style="font-size: 14px;">💼 My Wallet</div>
-      <div class="wallet-balance" id="profWalletBalance">$0.00</div>
-      <button class="btn" onclick="switchPage('wallet', document.querySelector('.nav-item:nth-child(5)'))">⬇️ Withdraw</button>
+    <!-- New Menu List -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div class="menu-item" onclick="switchPage('wallet', null)">
+        <span>💼 My Wallet & Withdraw</span> <span style="color:var(--mut);">›</span>
+      </div>
+      <div class="menu-item" onclick="openNotificationsModal()">
+        <span>🔔 Notifications</span> <span style="color:var(--mut);">›</span>
+      </div>
+      <div class="menu-item" onclick="window.open(state.config.channels?.[0] || 'https://t.me', '_blank')">
+        <span>📢 Official Channels</span> <span style="color:var(--mut);">›</span>
+      </div>
+      <div class="menu-item" onclick="window.open(state.config.supportUrl || 'https://t.me', '_blank')">
+        <span>🎧 Support</span> <span style="color:var(--mut);">›</span>
+      </div>
+      <div class="menu-item" onclick="alert('EarnWallet v1.0.0\nDeveloped by Admin')">
+        <span>ℹ️ About Us</span> <span style="color:var(--mut);">›</span>
+      </div>
     </div>
   </section>
 
@@ -157,16 +171,12 @@
       <p style="font-size: 12px; color: var(--warn); margin-top: 0;" id="wdRuleText"></p>
       <label>Amount (Min: <span id="minW">$1.00</span>)</label>
       <input type="number" id="wdAmount" placeholder="Enter amount in USD" />
-      
       <label>Payment Method</label>
       <select id="wdMethod"></select>
-      
-      <label>Account Number</label>
-      <input type="text" id="wdAccount" placeholder="bKash/Nagad Number" />
-      
+      <label>Account Number / Wallet Address</label>
+      <input type="text" id="wdAccount" placeholder="bKash/Nagad/TRC20/LTC/ETH" />
       <button class="btn" onclick="requestWithdraw()">Request Withdraw</button>
     </div>
-    
     <h3 class="card-title" style="font-size: 14px;">History</h3>
     <div id="historyList"></div>
   </section>
@@ -204,9 +214,7 @@
       All Notifications
       <span style="cursor:pointer; color:var(--mut); font-size:20px;" onclick="closeModal('notifyModal')">&times;</span>
     </h3>
-    <div id="modalNotifyList" style="display: flex; flex-direction: column; gap: 8px; margin-top:12px;">
-      <!-- Notifications load here -->
-    </div>
+    <div id="modalNotifyList" style="display: flex; flex-direction: column; gap: 8px; margin-top:12px;"></div>
   </div>
 </div>
 
@@ -215,9 +223,7 @@
   <div class="modal-content">
     <h3 id="tmTitle" style="margin-top:0; font-size: 16px;">Task Title</h3>
     <div id="tmInst" style="font-size:12px; color:var(--mut); white-space: pre-wrap; background: var(--bg); padding: 10px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 12px; max-height: 120px; overflow-y: auto;"></div>
-    
     <div id="tmLinkWrap" style="margin-bottom:12px;"></div>
-    
     <div id="tmProofWrap">
       <label>Upload Screenshot or Enter Code</label>
       <div class="upload-box" onclick="document.getElementById('tmImage').click()">
@@ -226,7 +232,6 @@
       </div>
       <input type="text" id="tmProof" placeholder="Enter Code/Link here (optional)" style="margin-bottom:10px;" />
     </div>
-    
     <button class="btn" onclick="submitTask()">Submit Task</button>
     <button class="btn ghost" style="margin-top:6px;" onclick="closeModal('taskModal')">Cancel</button>
   </div>
