@@ -1033,4 +1033,788 @@ app.post('/api/withdraw', telegramAuth, async (req, res) => {
 
     const currentMin = settingsSnap.exists
       ? Number(settingsSnap.data().minWithdraw || MIN_WITHDRAW)
-      : MIN_WIT
+      : MIN_WITHDRAW;
+
+    const payments = { ...DEFAULT_PAYMENT_SETTINGS, ...(paymentSnap.exists ? paymentSnap.data() : {}) };
+
+    const paymentKey = method === 'bKash' ? 'bKash' : method === 'Nagad' ? 'Nagad' : method === 'Binance USDT' ? 'USDT' : null;
+
+    if (!paymentKey || payments[paymentKey]?.enabled !== true) {
+      return res.status(400).json({ success: false, error: 'This payment method is currently unavailable.' });
+    }
+
+    if (!Number.isFinite(amount) || amount < currentMin) {
+      return res.status(400).json({ success: false, error: `Minimum withdrawal is ${currentMin}.` });
+    }
+
+    if (amount > 10000000) {
+      return res.status(400).json({ success: false, error: 'Withdrawal amount is too high.' });
+    }
+
+    if (account.length < 5 || account.length > 120) {
+      return res.status(400).json({ success: false, error: 'Enter a valid payment account.' });
+    }
+
+    const referralDocs = await db.collection('referrals').where('referrerId', '==', uid).get();
+    const successful = referralDocs.docs.filter(d => d.data().status === 'successful').length;
+
+    if (successful < REQUIRED_SUCCESSFUL_REFERRALS) {
+      return res.status(403).json({
+        success: false,
+        error: `Withdrawal locked. You need ${REQUIRED_SUCCESSFUL_REFERRALS} successful referrals. Current: ${successful}.`
+      });
+    }
+
+    const uRef = userRef(db, uid);
+    const wRef = db.collection('withdrawals').doc();
+    const tRef = db.collection('transactions').doc();
+
+    await db.runTransaction(async tx => {
+      const user = await tx.get(uRef);
+      if (!user.exists) throw new Error('USER_NOT_FOUND');
+
+      const data = user.data();
+      if (data.status === 'banned') throw new Error('ACCOUNT_SUSPENDED');
+      if (Number(data.balance || 0) < amount) throw new Error('INSUFFICIENT_BALANCE');
+
+      const now = new Date().toISOString();
+
+      tx.update(uRef, { balance: Number(data.balance || 0) - amount });
+      tx.create(wRef, {
+        id: wRef.id,
+        userId: uid,
+        telegramId: uid,
+        amount,
+        method,
+        account,
+        status: 'pending',
+        createdAt: now
+      });
+      tx.create(tRef, {
+        userId: uid,
+        type: 'withdrawal',
+        amount: -amount,
+        status: 'pending',
+        note: `Withdrawal request (${method})`,
+        createdAt: now,
+        referenceId: wRef.id
+      });
+    });
+
+    res.json({ success: true, message: 'Withdrawal request submitted.' });
+  } catch (error) {
+    const map = {
+      USER_NOT_FOUND: [404, 'User not found.'],
+      ACCOUNT_SUSPENDED: [403, 'Account suspended.'],
+      INSUFFICIENT_BALANCE: [400, 'Insufficient balance.']
+    };
+    const [status, message] = map[error.message] || [500, 'Could not submit withdrawal.'];
+    if (status === 500) console.error(error);
+    res.status(status).json({ success: false, error: message });
+  }
+});
+
+// ==========================================
+// USER AD PLACEMENTS
+// ==========================================
+
+app.get('/api/ad-placements', telegramAuth, async (req, res) => {
+  try {
+    await requireActiveUser(getDb(), req.telegramUser.id);
+    const snap = await getDb().collection('adPlacements').get();
+    const placements = {};
+
+    snap.forEach(doc => {
+      const item = doc.data();
+      if (AD_PLACEMENT_SLOTS.has(doc.id) && item.enabled === true) {
+        placements[doc.id] = {
+          slot: doc.id,
+          label: String(item.label || 'Advertisement').slice(0, 60),
+          html: String(item.html || '').slice(0, 50000)
+        };
+      }
+    });
+
+    res.json({ success: true, data: placements });
+  } catch (error) {
+    sendError(res, error, 'Could not load ad placements.');
+  }
+});
+
+// ==========================================
+// ADMIN LIVE WITHDRAWALS (FAKE FEED)
+// ==========================================
+
+app.get('/api/live-withdrawals', telegramAuth, async (req, res) => {
+  try {
+    await requireActiveUser(getDb(), req.telegramUser.id);
+    const snap = await getDb().collection('liveWithdrawals').orderBy('createdAt', 'desc').limit(20).get();
+    res.json({ success: true, data: snap.docs.map(d => d.data()) });
+  } catch (error) { sendError(res, error, 'Could not load live withdrawals.'); }
+});
+
+app.post('/api/admin/live-withdrawals', adminAuth, async (req, res) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    const amount = Number(req.body.amount);
+    if (!name || !Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid name or amount' });
+    }
+    const ref = getDb().collection('liveWithdrawals').doc();
+    await ref.set({
+      id: ref.id, name, amount,
+      method: req.body.method || 'bKash',
+      createdAt: new Date().toISOString()
+    });
+    res.json({ success: true });
+  } catch (error) { sendError(res, error, 'Could not add live withdrawal.'); }
+});
+
+app.delete('/api/admin/live-withdrawals/:id', adminAuth, async (req, res) => {
+  try {
+    await getDb().collection('liveWithdrawals').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (error) { sendError(res, error, 'Could not delete live withdrawal.'); }
+});
+
+// ==========================================
+// ADMIN NOTIFICATIONS
+// ==========================================
+
+app.post('/api/admin/notifications', adminAuth, async (req, res) => {
+  try {
+    const title = String(req.body.title || '').trim();
+    const message = String(req.body.message || '').trim();
+    const target = String(req.body.target || 'all');
+
+    if (!title || !message) {
+      return res.status(400).json({ success: false, error: 'Title and message required' });
+    }
+
+    const ref = getDb().collection('notifications').doc();
+    await ref.set({
+      id: ref.id, title, message, target,
+      createdAt: new Date().toISOString(),
+      status: 'active'
+    });
+    res.json({ success: true, message: 'Notification sent' });
+  } catch (error) { sendError(res, error, 'Could not send notification.'); }
+});
+
+app.get('/api/admin/notifications', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('notifications').orderBy('createdAt', 'desc').limit(50).get();
+    res.json({ success: true, data: snap.docs.map(d => d.data()) });
+  } catch (error) { sendError(res, error, 'Could not load notifications.'); }
+});
+
+// ==========================================
+// ADMIN DASHBOARD STATS
+// ==========================================
+
+app.get('/api/admin/stats', adminAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const [users, pending] = await Promise.all([
+      db.collection('users').get(),
+      db.collection('withdrawals').where('status', '==', 'pending').get()
+    ]);
+
+    let totalBalance = 0;
+    let activeUsers = 0;
+    let bannedUsers = 0;
+
+    users.forEach(doc => {
+      const data = doc.data();
+      totalBalance += Number(data.balance || 0);
+      if (data.status === 'active') activeUsers++;
+      if (data.status === 'banned') bannedUsers++;
+    });
+
+    res.json({
+      success: true,
+      data: { totalUsers: users.size, activeUsers, bannedUsers, totalBalance, pendingWithdraws: pending.size }
+    });
+  } catch (error) {
+    sendError(res, error, 'Could not load dashboard stats.');
+  }
+});
+
+// ==========================================
+// ADMIN USERS
+// ==========================================
+
+app.get('/api/admin/users', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('users').get();
+    res.json({ success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+  } catch (error) {
+    sendError(res, error, 'Could not load users.');
+  }
+});
+
+app.post('/api/admin/ban', adminAuth, async (req, res) => {
+  try {
+    const telegramId = String(req.body.telegramId || '');
+    const status = req.body.status;
+
+    if (!/^\d{1,20}$/.test(telegramId) || !['active', 'banned'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid user or status.' });
+    }
+
+    const ref = userRef(getDb(), telegramId);
+    const snap = await ref.get();
+
+    if (!snap.exists) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    await ref.update({ status });
+    res.json({ success: true });
+  } catch (error) {
+    sendError(res, error, 'Could not update user status.');
+  }
+});
+
+// ==========================================
+// ADMIN ADVERTISEMENTS
+// ==========================================
+
+app.get('/api/admin/ads', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('advertisements').get();
+    res.json({ success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+  } catch (error) {
+    sendError(res, error, 'Could not load ads.');
+  }
+});
+
+app.post('/api/admin/ads', adminAuth, async (req, res) => {
+  try {
+    const title = String(req.body.title || '').trim();
+    const url = new URL(String(req.body.url || ''));
+    const bannerUrl = String(req.body.bannerUrl || '').trim(); // নতুন
+    const reward = Number(req.body.reward);
+    const duration = Number(req.body.duration);
+
+    if (
+      !title ||
+      !['http:', 'https:'].includes(url.protocol) ||
+      !Number.isFinite(reward) || reward <= 0 || reward > 1000 ||
+      !Number.isInteger(duration) || duration < 20 || duration > 300
+    ) {
+      return res.status(400).json({ success: false, error: 'Invalid ad fields. Duration must be 20 to 300 seconds.' });
+    }
+
+    const ref = getDb().collection('advertisements').doc();
+    await ref.set({
+      id: ref.id, title,
+      url: url.toString(),
+      bannerUrl,
+      reward, duration,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    });
+
+    res.json({ success: true, data: { id: ref.id } });
+  } catch (error) {
+    sendError(res, error, 'Could not create ad.');
+  }
+});
+
+app.delete('/api/admin/ads/:id', adminAuth, async (req, res) => {
+  try {
+    await getDb().collection('advertisements').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (error) {
+    sendError(res, error, 'Could not delete ad.');
+  }
+});
+
+// ==========================================
+// ADMIN TASKS
+// ==========================================
+
+app.get('/api/admin/tasks', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('tasks').get();
+    res.json({ success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+  } catch (error) {
+    sendError(res, error, 'Could not load tasks.');
+  }
+});
+
+app.post('/api/admin/tasks', adminAuth, async (req, res) => {
+  try {
+    const title = String(req.body.title || '').trim();
+    const instruction = String(req.body.instruction || '').trim(); // নতুন
+    const url = String(req.body.url || '').trim();
+    const logoUrl = String(req.body.logoUrl || '').trim(); // নতুন
+    const reward = Number(req.body.reward);
+    const requiresProof = req.body.requiresProof === true;
+
+    if (!title || !Number.isFinite(reward) || reward < 0 || reward > 100000) {
+      return res.status(400).json({ success: false, error: 'Invalid task fields.' });
+    }
+
+    if (url) {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return res.status(400).json({ success: false, error: 'Invalid task URL.' });
+      }
+    }
+
+    const ref = getDb().collection('tasks').doc();
+    await ref.set({
+      id: ref.id, title, instruction, url, logoUrl, reward, requiresProof,
+      status: 'active', createdAt: new Date().toISOString()
+    });
+
+    res.json({ success: true, data: { id: ref.id } });
+  } catch (error) {
+    sendError(res, error, 'Could not create task.');
+  }
+});
+
+app.delete('/api/admin/tasks/:id', adminAuth, async (req, res) => {
+  try {
+    await getDb().collection('tasks').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (error) {
+    sendError(res, error, 'Could not delete task.');
+  }
+});
+
+// ==========================================
+// ADMIN TASK SUBMISSIONS (PROOFS)
+// ==========================================
+
+app.get('/api/admin/task-submissions', adminAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    let query = db.collection('taskSubmissions');
+    if (req.query.status) {
+      query = query.where('status', '==', req.query.status);
+    }
+    
+    const snap = await query.get();
+    
+    const submissions = await Promise.all(snap.docs.map(async (doc) => {
+      const data = doc.data();
+      
+      const userSnap = await userRef(db, data.userId).get();
+      const userData = userSnap.exists ? userSnap.data() : {};
+      
+      const taskSnap = await db.collection('tasks').doc(data.taskId).get();
+      const taskData = taskSnap.exists ? taskSnap.data() : {};
+
+      return {
+        id: doc.id,
+        ...data,
+        userName: userData.firstName ? `${userData.firstName} ${userData.lastName || ''}` : 'Unknown User',
+        userTelegramId: data.userId,
+        taskTitle: taskData.title || 'Deleted Task',
+        taskReward: taskData.reward || data.reward || 0
+      };
+    }));
+
+    submissions.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+    res.json({ success: true, data: submissions });
+  } catch (error) {
+    sendError(res, error, 'Could not load task submissions.');
+  }
+});
+
+app.post('/api/admin/task-submissions/:id', adminAuth, async (req, res) => {
+  try {
+    const status = req.body.status;
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status.' });
+    }
+
+    const db = getDb();
+    const subRef = db.collection('taskSubmissions').doc(req.params.id);
+
+    await db.runTransaction(async (tx) => {
+      const subSnap = await tx.get(subRef);
+      if (!subSnap.exists) throw new Error('NOT_FOUND');
+
+      const sub = subSnap.data();
+      if (sub.status !== 'pending') throw new Error('ALREADY_PROCESSED');
+
+      const uRef = userRef(db, sub.userId);
+      const userSnap = await tx.get(uRef);
+      if (!userSnap.exists) throw new Error('USER_NOT_FOUND');
+
+      const uData = userSnap.data();
+      const now = new Date().toISOString();
+      const reward = Number(sub.reward || 0);
+
+      tx.update(subRef, { status, updatedAt: now });
+
+      if (status === 'approved') {
+        tx.update(uRef, {
+          balance: Number(uData.balance || 0) + reward,
+          totalEarnings: Number(uData.totalEarnings || 0) + reward,
+          completedTasks: Number(uData.completedTasks || 0) + 1,
+          pendingTasks: Math.max(0, Number(uData.pendingTasks || 0) - 1)
+        });
+
+        const tRef = db.collection('transactions').doc();
+        tx.create(tRef, {
+          userId: sub.userId,
+          type: 'task_reward',
+          amount: reward,
+          status: 'completed',
+          note: `Task reward: ${sub.taskId}`,
+          createdAt: now
+        });
+      } else {
+        tx.update(uRef, {
+          pendingTasks: Math.max(0, Number(uData.pendingTasks || 0) - 1)
+        });
+      }
+    });
+
+    res.json({ success: true, message: `Task ${status}.` });
+  } catch (error) {
+    const map = {
+      NOT_FOUND: [404, 'Submission not found.'],
+      ALREADY_PROCESSED: [409, 'Already processed.'],
+      USER_NOT_FOUND: [404, 'User not found.']
+    };
+    const [code, msg] = map[error.message] || [500, 'Could not process submission.'];
+    if (code === 500) console.error(error);
+    res.status(code).json({ success: false, error: msg });
+  }
+});
+
+// ==========================================
+// ADMIN WITHDRAWALS
+// ==========================================
+
+app.get('/api/admin/withdrawals', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('withdrawals').orderBy('createdAt', 'desc').get();
+    res.json({ success: true, data: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
+  } catch (error) {
+    sendError(res, error, 'Could not load withdrawals.');
+  }
+});
+
+app.post('/api/admin/withdrawals/:id', adminAuth, async (req, res) => {
+  try {
+    const status = req.body.status;
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status.' });
+    }
+
+    const db = getDb();
+    const wRef = db.collection('withdrawals').doc(req.params.id);
+
+    await db.runTransaction(async tx => {
+      const withdrawal = await tx.get(wRef);
+      if (!withdrawal.exists) throw new Error('NOT_FOUND');
+
+      const data = withdrawal.data();
+      if (data.status !== 'pending') throw new Error('ALREADY_PROCESSED');
+
+      const uRef = userRef(db, data.userId);
+      const user = await tx.get(uRef);
+      if (!user.exists) throw new Error('USER_NOT_FOUND');
+
+      const now = new Date().toISOString();
+      tx.update(wRef, { status, updatedAt: now });
+
+      if (status === 'rejected') {
+        tx.update(uRef, { balance: Number(user.data().balance || 0) + Number(data.amount || 0) });
+      } else {
+        tx.update(uRef, { withdrawnAmount: Number(user.data().withdrawnAmount || 0) + Number(data.amount || 0) });
+      }
+
+      const transaction = db.collection('transactions').doc();
+      tx.create(transaction, {
+        userId: data.userId,
+        type: 'withdrawal',
+        amount: status === 'rejected' ? Number(data.amount) : -Number(data.amount),
+        status,
+        note: `Withdrawal ${status}`,
+        referenceId: wRef.id,
+        createdAt: now
+      });
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    const map = {
+      NOT_FOUND: [404, 'Withdrawal not found.'],
+      ALREADY_PROCESSED: [409, 'Already processed.'],
+      USER_NOT_FOUND: [404, 'Withdrawal user not found.']
+    };
+    const [status, message] = map[error.message] || [500, 'Could not process withdrawal.'];
+    if (status === 500) console.error(error);
+    res.status(status).json({ success: false, error: message });
+  }
+});
+
+// ==========================================
+// ADMIN AD PLACEMENTS
+// ==========================================
+
+app.get('/api/admin/ad-placements', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('adPlacements').get();
+    const data = {};
+    snap.forEach(doc => {
+      if (AD_PLACEMENT_SLOTS.has(doc.id)) {
+        data[doc.id] = { slot: doc.id, ...doc.data() };
+      }
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    sendError(res, error, 'Could not load ad placements.');
+  }
+});
+
+app.put('/api/admin/ad-placements/:slot', adminAuth, async (req, res) => {
+  try {
+    const slot = String(req.params.slot || '');
+    if (!AD_PLACEMENT_SLOTS.has(slot)) {
+      return res.status(400).json({ success: false, error: 'Unknown ad placement slot.' });
+    }
+
+    const label = String(req.body.label || 'Advertisement').trim().slice(0, 60);
+    const html = String(req.body.html || '');
+    const enabled = req.body.enabled === true;
+
+    if (html.length > 50000) {
+      return res.status(400).json({ success: false, error: 'Ad HTML must be 50 KB or less.' });
+    }
+
+    await getDb().collection('adPlacements').doc(slot).set({
+      slot, label, html, enabled,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    res.json({ success: true, message: `Ad placement "${slot}" saved.` });
+  } catch (error) {
+    sendError(res, error, 'Could not save ad placement.');
+  }
+});
+
+app.delete('/api/admin/ad-placements/:slot', adminAuth, async (req, res) => {
+  try {
+    const slot = String(req.params.slot || '');
+    if (!AD_PLACEMENT_SLOTS.has(slot)) {
+      return res.status(400).json({ success: false, error: 'Unknown ad placement slot.' });
+    }
+    await getDb().collection('adPlacements').doc(slot).delete();
+    res.json({ success: true });
+  } catch (error) {
+    sendError(res, error, 'Could not remove ad placement.');
+  }
+});
+
+// ==========================================
+// ADMIN APP SETTINGS
+// ==========================================
+
+app.get('/api/admin/settings', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('appConfig').doc('settings').get();
+    res.json({
+      success: true,
+      data: { ...DEFAULT_APP_SETTINGS, ...(snap.exists ? snap.data() : {}) }
+    });
+  } catch (error) {
+    sendError(res, error, 'Could not load settings.');
+  }
+});
+
+app.put('/api/admin/settings', adminAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const settings = {
+      appName: String(body.appName || 'EarnWallet').trim().slice(0, 60),
+      maintenance: body.maintenance === true,
+      maintenanceMessage: String(body.maintenanceMessage || DEFAULT_APP_SETTINGS.maintenanceMessage).trim().slice(0, 500),
+      supportUrl: String(body.supportUrl || '').trim().slice(0, 500),
+      minWithdraw: Number(body.minWithdraw)
+    };
+
+    if (!Number.isFinite(settings.minWithdraw) || settings.minWithdraw < 1 || settings.minWithdraw > 1000000) {
+      return res.status(400).json({ success: false, error: 'Invalid minimum withdrawal.' });
+    }
+
+    if (settings.supportUrl) {
+      const parsed = new URL(settings.supportUrl);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return res.status(400).json({ success: false, error: 'Invalid support URL.' });
+      }
+    }
+
+    await getDb().collection('appConfig').doc('settings').set({
+      ...settings,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    sendError(res, error, 'Could not save settings.');
+  }
+});
+
+// ==========================================
+// ADMIN PAYMENT SETTINGS
+// ==========================================
+
+app.get('/api/admin/payment-settings', adminAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('appConfig').doc('payments').get();
+    res.json({
+      success: true,
+      data: { ...DEFAULT_PAYMENT_SETTINGS, ...(snap.exists ? snap.data() : {}) }
+    });
+  } catch (error) {
+    sendError(res, error, 'Could not load payment settings.');
+  }
+});
+
+app.put('/api/admin/payment-settings', adminAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const methods = {};
+    for (const method of ['bKash', 'Nagad', 'USDT']) {
+      methods[method] = {
+        enabled: body[method]?.enabled === true,
+        label: method === 'USDT' ? 'Binance USDT' : method
+      };
+    }
+    await getDb().collection('appConfig').doc('payments').set({
+      ...methods,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    res.json({ success: true, data: methods });
+  } catch (error) {
+    sendError(res, error, 'Could not save payment settings.');
+  }
+});
+
+// ==========================================
+// ADMIN DATABASE BACKUP
+// ==========================================
+
+const BACKUP_COLLECTIONS = [
+  'users', 'advertisements', 'adClaims', 'watchSessions',
+  'tasks', 'taskSubmissions', 'referrals', 'transactions',
+  'withdrawals', 'adPlacements', 'appConfig',
+  'liveWithdrawals', 'notifications'
+];
+
+app.get('/api/admin/backup', adminAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const backup = {
+      app: 'EarnWallet',
+      formatVersion: 1,
+      createdAt: new Date().toISOString(),
+      collections: {}
+    };
+
+    let total = 0;
+    for (const name of BACKUP_COLLECTIONS) {
+      const snap = await db.collection(name).get();
+      backup.collections[name] = {};
+      for (const doc of snap.docs) {
+        total++;
+        if (total > 5000) {
+          return res.status(413).json({ success: false, error: 'Backup is limited to 5000 documents.' });
+        }
+        backup.collections[name][doc.id] = doc.data();
+      }
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="earnwallet-backup-${Date.now()}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(backup));
+  } catch (error) {
+    sendError(res, error, 'Could not create backup.');
+  }
+});
+
+app.post('/api/admin/restore', adminAuth, async (req, res) => {
+  try {
+    const backup = req.body;
+    if (
+      !backup || backup.app !== 'EarnWallet' || backup.formatVersion !== 1 ||
+      !backup.collections || typeof backup.collections !== 'object' || Array.isArray(backup.collections)
+    ) {
+      return res.status(400).json({ success: false, error: 'Invalid EarnWallet backup file.' });
+    }
+
+    const db = getDb();
+    let batch = db.batch();
+    let batchCount = 0;
+    let restored = 0;
+
+    for (const name of Object.keys(backup.collections)) {
+      if (!BACKUP_COLLECTIONS.includes(name)) continue;
+      const docs = backup.collections[name];
+      if (!docs || typeof docs !== 'object' || Array.isArray(docs)) continue;
+
+      for (const [id, data] of Object.entries(docs)) {
+        if (!id || id.length > 500 || id.includes('/') || !data || typeof data !== 'object' || Array.isArray(data)) continue;
+
+        restored++;
+        if (restored > 5000) throw new Error('RESTORE_LIMIT_EXCEEDED');
+
+        batch.set(db.collection(name).doc(id), data, { merge: true });
+        batchCount++;
+
+        if (batchCount >= 400) {
+          await batch.commit();
+          batch = db.batch();
+          batchCount = 0;
+        }
+      }
+    }
+
+    if (batchCount) await batch.commit();
+
+    res.json({
+      success: true,
+      message: 'Backup restored using safe merge.',
+      data: { restoredDocuments: restored, deletedDocuments: 0 }
+    });
+  } catch (error) {
+    if (error.message === 'RESTORE_LIMIT_EXCEEDED') {
+      return res.status(413).json({ success: false, error: 'Restore is limited to 5000 documents.' });
+    }
+    sendError(res, error, 'Could not restore backup.');
+  }
+});
+
+// ==========================================
+// FRONTEND SERVING
+// ==========================================
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
+});
+
+app.use(express.static(PUBLIC_DIR));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
+
+// ==========================================
+// START SERVER
+// ==========================================
+
+app.listen(PORT, () => {
+  console.log(`EarnWallet server running on port ${PORT}`);
+  console.log(`Frontend directory: ${PUBLIC_DIR}`);
+  configureTelegramWebhook();
+});
