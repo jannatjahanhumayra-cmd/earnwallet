@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EarnWallet</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body{margin:0;font-family:system-ui,sans-serif;background:#0f1420;color:#e8edf7;
+       display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}
+  .box{padding:24px}
+  h1{font-size:20px;margin:0 0 8px}
+  p{color:#8b98b5;font-size:14px;margin:0}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>EarnWallet</h1>
+  <p id="msg">Loading…</p>
+</div>
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready(); tg?.expand();
+
+(async () => {
+  const msg = document.getElementById('msg');
+  const init = tg?.initData || '';
+  if (!init) {
+    msg.textContent = 'Please open this app from the EarnWallet bot.';
+    return;
+  }
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `tma ${init}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    msg.textContent = `Welcome, ${data.data.firstName || 'friend'}! Balance: ${data.data.balance} coins`;
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+})();
+</script>
+</body>
+</html>
