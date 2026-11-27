@@ -11,8 +11,8 @@
   header{position:sticky;top:0;z-index:10;background:#121828;border-bottom:1px solid var(--line);padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
   header h1{font-size:16px;margin:0}
   .dropdown{position:relative;display:inline-block}
-  .dropbtn{background:transparent;border:none;color:var(--txt);font-size:20px;cursor:pointer;padding:0 10px}
-  .dropdown-content{display:none;position:absolute;right:0;background:#1a2233;min-width:200px;box-shadow:0 8px 16px rgba(0,0,0,0.5);z-index:20;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .dropbtn{background:transparent;border:none;color:var(--txt);font-size:22px;cursor:pointer;padding:0 10px}
+  .dropdown-content{display:none;position:absolute;right:0;background:#1a2233;min-width:220px;box-shadow:0 8px 16px rgba(0,0,0,0.5);z-index:20;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .dropdown-content a{color:var(--txt);padding:12px 16px;text-decoration:none;display:block;font-size:14px;cursor:pointer}
   .dropdown-content a:hover{background:#2a3550}
   .dropdown:hover .dropdown-content{display:block}
@@ -39,6 +39,7 @@
   .tag.banned,.tag.rejected{background:rgba(255,92,92,.15);color:var(--bad)}
   .tag.pending{background:rgba(241,196,15,.15);color:var(--warn)}
   .scroll{overflow:auto; max-height: 400px;}
+  .scroll-lg{overflow:auto; max-height: 600px;}
 </style>
 </head>
 <body>
@@ -50,9 +51,10 @@
       <a onclick="showTab('dashboard')">Dashboard</a>
       <a onclick="showTab('users')">Users</a>
       <a onclick="showTab('tasks')">Tasks</a>
+      <a onclick="showTab('proofs')">Task Proofs</a> <!-- নতুন -->
       <a onclick="showTab('ads')">Ads</a>
       <a onclick="showTab('withdrawals')">Withdrawals</a>
-      <a onclick="showTab('live')">Live Withdrawals (Fake)</a>
+      <a onclick="showTab('live')">Live Withdrawals</a>
       <a onclick="showTab('notify')">Notifications</a>
       <a onclick="showTab('settings')">Settings</a>
     </div>
@@ -68,7 +70,7 @@
       <div class="grid" id="statsGrid"></div>
     </section>
 
-    <!-- USERS (Updated with Profile Pic & Click to view) -->
+    <!-- USERS -->
     <section data-tab="users" class="hide">
       <div class="panel">
         <h2>Users</h2>
@@ -78,7 +80,7 @@
           <tbody id="usersBody"></tbody>
         </table></div>
       </div>
-      <!-- User Details Modal (Hidden by default) -->
+      <!-- User Details Modal -->
       <div id="userModal" class="panel hide" style="border-color:var(--acc)">
         <h2 id="modalTitle">User Details</h2>
         <div id="modalBody" class="muted" style="line-height:1.6; margin-bottom:10px"></div>
@@ -91,7 +93,87 @@
       </div>
     </section>
 
-    <!-- LIVE WITHDRAWALS (Admin side) -->
+    <!-- TASKS -->
+    <section data-tab="tasks" class="hide">
+      <div class="panel">
+        <h2>Create Task</h2>
+        <label>Task Title</label><input id="taskTitle" />
+        <label>Instruction</label><input id="taskInst" placeholder="Instructions for user..." />
+        <label>Work Link</label><input id="taskUrl" placeholder="https://..." />
+        <label>Logo Link</label><input id="taskLogo" placeholder="https://..." />
+        <div class="row">
+          <div><label>Reward</label><input id="taskReward" type="number" value="0" /></div>
+          <div><label>Requires Proof?</label><select id="taskProof"><option value="false">No</option><option value="true">Yes</option></select></div>
+        </div>
+        <button class="btn" onclick="createTask()">Create</button>
+        <div class="msg" id="taskMsg"></div>
+      </div>
+      <div class="panel">
+        <h2>Tasks List</h2>
+        <div class="scroll"><table><thead><tr><th>Title</th><th>Reward</th><th>Status</th><th>Delete</th></tr></thead><tbody id="tasksBody"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- TASK PROOFS (SUBMISSIONS) -->
+    <section data-tab="proofs" class="hide">
+      <div class="panel">
+        <h2>Task Proof Submissions</h2>
+        <div style="margin-bottom:12px;">
+          <button class="btn sm" onclick="loadProofs('pending')">Pending Only</button>
+          <button class="btn sm ghost" onclick="loadProofs('')">Show All</button>
+        </div>
+        <div class="scroll-lg">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Task</th>
+                <th>Proof</th>
+                <th>Reward</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="proofsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADS -->
+    <section data-tab="ads" class="hide">
+      <div class="panel">
+        <h2>Create Ad</h2>
+        <label>Ad Title</label><input id="adTitle" />
+        <label>Ad Link</label><input id="adUrl" placeholder="https://..." />
+        <label>Banner Link</label><input id="adBanner" placeholder="https://..." />
+        <div class="row">
+          <div><label>Reward</label><input id="adReward" type="number" value="1" /></div>
+          <div><label>Duration (sec)</label><input id="adDuration" type="number" value="20" /></div>
+        </div>
+        <button class="btn" onclick="createAd()">Create</button>
+        <div class="msg" id="adMsg"></div>
+      </div>
+      <div class="panel">
+        <h2>Ads List</h2>
+        <div class="scroll"><table><thead><tr><th>Title</th><th>Reward</th><th>Status</th><th>Delete</th></tr></thead><tbody id="adsBody"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- WITHDRAWALS -->
+    <section data-tab="withdrawals" class="hide">
+      <div class="panel">
+        <h2>User Withdrawal Requests</h2>
+        <div class="scroll"><table><thead><tr><th>User ID</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Action</th></tr></thead><tbody id="wdBody"></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Withdrawal System Rules</h2>
+        <label>Minimum Withdraw</label><input type="number" id="minWithdraw" />
+        <button class="btn" onclick="saveSettings()">Save Rules</button>
+      </div>
+    </section>
+
+    <!-- LIVE WITHDRAWALS (Fake Feed) -->
     <section data-tab="live" class="hide">
       <div class="panel">
         <h2>Add Fake Live Withdrawal</h2>
@@ -120,60 +202,6 @@
       <div class="panel">
         <h2>Recent Notifications</h2>
         <div class="scroll"><table><thead><tr><th>Target</th><th>Title</th><th>Message</th><th>Time</th></tr></thead><tbody id="notifyBody"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- TASKS (Updated with Logo, Instruction) -->
-    <section data-tab="tasks" class="hide">
-      <div class="panel">
-        <h2>Create Task</h2>
-        <label>Task Title</label><input id="taskTitle" />
-        <label>Instruction</label><input id="taskInst" placeholder="Instructions for user..." />
-        <label>Work Link</label><input id="taskUrl" placeholder="https://..." />
-        <label>Logo Link</label><input id="taskLogo" placeholder="https://..." />
-        <div class="row">
-          <div><label>Reward</label><input id="taskReward" type="number" value="0" /></div>
-          <div><label>Requires Proof?</label><select id="taskProof"><option value="false">No</option><option value="true">Yes</option></select></div>
-        </div>
-        <button class="btn" onclick="createTask()">Create</button>
-        <div class="msg" id="taskMsg"></div>
-      </div>
-      <div class="panel">
-        <h2>Tasks List</h2>
-        <div class="scroll"><table><thead><tr><th>Title</th><th>Reward</th><th>Status</th><th>Delete</th></tr></thead><tbody id="tasksBody"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- ADS (Updated with Banner) -->
-    <section data-tab="ads" class="hide">
-      <div class="panel">
-        <h2>Create Ad</h2>
-        <label>Ad Title</label><input id="adTitle" />
-        <label>Ad Link</label><input id="adUrl" placeholder="https://..." />
-        <label>Banner Link</label><input id="adBanner" placeholder="https://..." />
-        <div class="row">
-          <div><label>Reward</label><input id="adReward" type="number" value="1" /></div>
-          <div><label>Duration (sec)</label><input id="adDuration" type="number" value="20" /></div>
-        </div>
-        <button class="btn" onclick="createAd()">Create</button>
-        <div class="msg" id="adMsg"></div>
-      </div>
-      <div class="panel">
-        <h2>Ads List</h2>
-        <div class="scroll"><table><thead><tr><th>Title</th><th>Reward</th><th>Status</th><th>Delete</th></tr></thead><tbody id="adsBody"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- WITHDRAWALS -->
-    <section data-tab="withdrawals" class="hide">
-      <div class="panel">
-        <h2>User Withdrawal Requests</h2>
-        <div class="scroll"><table><thead><tr><th>User ID</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Action</th></tr></thead><tbody id="wdBody"></tbody></table></div>
-      </div>
-      <div class="panel">
-        <h2>Withdrawal System Rules (User Rules)</h2>
-        <label>Minimum Withdraw</label><input type="number" id="minWithdraw" />
-        <button class="btn" onclick="saveSettings()">Save Rules</button>
       </div>
     </section>
 
@@ -254,7 +282,7 @@ function openUser(id){
   const u = state.users.find(x => x.id === id);
   if(!u) return;
   selectedUserId = id;
-  el('modalTitle').textContent = u.firstName + "'s Profile";
+  el('modalTitle').textContent = (u.firstName || 'User') + "'s Profile";
   el('modalBody').innerHTML = `ID: ${h(u.id)}<br>Balance: ${h(u.balance)}<br>Earned: ${h(u.totalEarnings)}<br>Status: ${h(u.status)}`;
   el('userModal').classList.remove('hide');
 }
@@ -265,7 +293,6 @@ async function toggleBan(id, status){
   loadUsers(); loadStats();
 }
 async function updateBalance(){
-  // এটা কাজ করতে server.js এ একটা নতুন রুট লাগবে, আপাতত আমরা ইউজারকে মেসেজ দিব
   setMsg('modalMsg', 'Balance update API is not yet added in server.js', false);
 }
 
@@ -284,6 +311,55 @@ async function createTask(){
   } catch(e){ setMsg('taskMsg', e.message, false); }
 }
 async function delTask(id){ if(confirm('Delete?')) { await api('/api/admin/tasks/'+id, {method:'DELETE'}); loadTasks(); } }
+
+// --- TASK PROOFS (SUBMISSIONS) ---
+async function loadProofs(statusFilter = 'pending') {
+  try {
+    const url = statusFilter ? `/api/admin/task-submissions?status=${statusFilter}` : '/api/admin/task-submissions';
+    const { data } = await api(url);
+    
+    el('proofsBody').innerHTML = data.map(s => {
+      const statusClass = s.status === 'approved' ? 'approved' : s.status === 'rejected' ? 'rejected' : 'pending';
+      
+      return `<tr>
+        <td>
+          <strong>${h(s.userName)}</strong><br>
+          <span class="muted">ID: ${h(s.userTelegramId)}</span>
+        </td>
+        <td>${h(s.taskTitle)}</td>
+        <td style="max-width: 200px; word-break: break-all;">
+          <span class="muted">${h(s.proof || 'No proof text')}</span>
+        </td>
+        <td>${h(s.taskReward)}</td>
+        <td><span class="tag ${statusClass}">${h(s.status)}</span></td>
+        <td>
+          ${s.status === 'pending' ? `
+            <button class="btn sm ok" onclick="processProof('${h(s.id)}','approved')">Approve</button>
+            <button class="btn sm bad" onclick="processProof('${h(s.id)}','rejected')">Reject</button>
+          ` : '—'}
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" class="muted">No proofs found</td></tr>';
+  } catch (e) {
+    alert('Error loading proofs: ' + e.message);
+  }
+}
+
+async function processProof(id, status) {
+  const action = status === 'approved' ? 'Approve' : 'Reject';
+  if (!confirm(`Are you sure you want to ${action} this task proof?`)) return;
+  
+  try {
+    await api('/api/admin/task-submissions/' + id, {
+      method: 'POST',
+      body: JSON.stringify({ status })
+    });
+    alert(`Proof ${status} successfully!`);
+    loadProofs('pending'); // রিফ্রেশ
+  } catch (e) {
+    alert(e.message);
+  }
+}
 
 // --- ADS ---
 async function loadAds(){
@@ -306,7 +382,7 @@ async function loadWithdrawals(){
   const { data } = await api('/api/admin/withdrawals'); state.withdrawals = data || [];
   el('wdBody').innerHTML = state.withdrawals.map(w => `<tr><td>${h(w.telegramId)}</td><td>${h(w.amount)}</td><td>${h(w.method)}</td><td>${h(w.account)}</td><td><span class="tag ${h(w.status)}">${h(w.status)}</span></td><td>${w.status==='pending'?`<button class="btn sm ok" onclick="processWd('${h(w.id)}','approved')">Approve</button> <button class="btn sm bad" onclick="processWd('${h(w.id)}','rejected')">Reject</button>`:'—'}</td></tr>`).join('');
 }
-async function processWd(id, status){ await api('/api/admin/withdrawals/'+id, {method:'POST', body: JSON.stringify({status})}); loadWithdrawals(); }
+async function processWd(id, status){ await api('/api/admin/withdrawals/'+id, {method:'POST', body: JSON.stringify({status})}); loadWithdrawals(); loadStats(); }
 
 // --- LIVE WITHDRAW ---
 async function loadLive(){
