@@ -1384,6 +1384,23 @@ app.delete('/api/admin/tasks/:id', adminAuth, async (req, res) => {
     sendError(res, error, 'Could not delete task.');
   }
 });
+app.delete('/api/admin/tasks/:id', adminAuth, async (req, res) => {
+  try {
+    await getDb().collection('tasks').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (error) {
+    sendError(res, error, 'Could not delete task.');
+  }
+});
+
+// ==========================================
+// ADMIN TASK SUBMISSIONS (PROOFS)  <-- এখান থেকে নতুন কোড শুরু
+// ==========================================
+
+app.get('/api/admin/task-submissions', adminAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    // ... (বাকি কোড)
 
 // ==========================================
 // ADMIN WITHDRAWALS
