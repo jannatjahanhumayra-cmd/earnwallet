@@ -9,7 +9,9 @@ let state = {
   tasks: [],
   currentAd: null,
   currentTask: null,
-  uploadedImageBase64: null
+  uploadedImageBase64: null,
+  filterType: 'all',
+  searchQuery: ''
 };
 
 function el(id) { return document.getElementById(id); }
@@ -119,9 +121,10 @@ async function loadProfile() {
   el('userPic').src = picUrl;
   el('headerBalance').innerHTML = `<span style="font-size:10px">$</span> ` + usdBalance;
   
+  // Home Page (Only USD)
   el('homeBalance').innerHTML = '$' + usdBalance;
-  el('todayEarn').textContent = fmt(data.todayEarnings) + ' Coins';
-  el('totalEarn').textContent = fmt(data.totalEarnings) + ' Coins';
+  el('todayEarn').textContent = '$' + toUSD(data.todayEarnings);
+  el('totalEarn').textContent = '$' + toUSD(data.totalEarnings);
   
   el('profPic').src = picUrl;
   el('profName').textContent = data.firstName || 'User';
@@ -137,16 +140,10 @@ function switchPage(pageId, navEl) {
 }
 
 function switchTaskTab(type, elm) {
-  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
   elm.classList.add('active');
-  
-  if(type === 'all') {
-    el('tasksList').style.display = 'block';
-    el('adsList').style.display = 'none';
-  } else {
-    el('tasksList').style.display = 'none';
-    el('adsList').style.display = 'block';
-  }
+  state.filterType = type;
+  loadTasks();
 }
 
 async function loadLiveFeed() {
@@ -232,11 +229,31 @@ async function loadTasks() {
   try {
     const { data } = await api('/api/tasks');
     state.tasks = data;
-    if (!data.length) {
-      el('tasksList').innerHTML = '<p class="muted" style="text-align:center;">No tasks available.</p>';
+    
+    // ফিল্টার এবং সার্চ লজিক
+    const q = (el('taskSearch')?.value || '').toLowerCase().trim();
+    let filtered = data;
+    
+    if (state.filterType !== 'all') {
+      filtered = filtered.filter(t => 
+        String(t.title).toLowerCase().includes(state.filterType) || 
+        String(t.instruction).toLowerCase().includes(state.filterType)
+      );
+    }
+    
+    if (q) {
+      filtered = filtered.filter(t => 
+        String(t.title).toLowerCase().includes(q) || 
+        String(t.instruction).toLowerCase().includes(q)
+      );
+    }
+
+    if (!filtered.length) {
+      el('tasksList').innerHTML = '<p class="muted" style="text-align:center;">No tasks found.</p>';
       return;
     }
-    el('tasksList').innerHTML = data.map(t => {
+    
+    el('tasksList').innerHTML = filtered.map(t => {
       const isDone = t.submissionStatus === 'pending' || t.submissionStatus === 'approved';
       const statusStr = t.submissionStatus === 'pending' ? 'Under Review' : (t.submissionStatus === 'approved' ? 'Completed' : 'Available');
       
@@ -380,7 +397,7 @@ function updatePaymentOptions() {
 }
 
 async function loadWallet() {
-  el('minW').textContent = state.config.minWithdraw || 100;
+  el('minW').textContent = '$' + toUSD(state.config.minWithdraw || 100);
   const reqRef = state.config.requiredReferrals !== undefined ? state.config.requiredReferrals : 10;
   el('wdRuleText').textContent = `You need at least ${reqRef} successful referral(s) to enable withdrawal.`;
   
@@ -434,38 +451,31 @@ async function requestWithdraw() {
 async function loadNotifications() {
   try {
     const { data } = await api('/api/notifications');
-    if (!data || data.length === 0) {
-      el('notifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No notifications.</p>';
+    
+    // মেইন হোম পেজের নোটিশ বক্স
+    if (data && data.length > 0) {
+      el('noticeMarquee').innerHTML = `<span>${h(data[0].title)}: ${h(data[0].message)}</span>`;
     } else {
-      el('notifyList').innerHTML = data.map(n => `
-        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;">
-          <div style="font-weight: 700; color: var(--acc); margin-bottom: 2px; font-size:12px;">${h(n.title)}</div>
-          <div style="font-size: 11px; color: var(--txt);">${h(n.message)}</div>
-          <div style="font-size: 9px; color: var(--mut); margin-top: 4px;">${new Date(n.createdAt).toLocaleString()}</div>
+      el('noticeMarquee').innerHTML = `<span>No new notices.</span>`;
+    }
+
+    // পপআপের ভেতরের নোটিশ লিস্ট
+    if (!data || data.length === 0) {
+      el('modalNotifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No notifications.</p>';
+    } else {
+      el('modalNotifyList').innerHTML = data.map(n => `
+        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border-left: 3px solid var(--acc);">
+          <div style="font-weight: 700; color: var(--acc); margin-bottom: 4px; font-size:13px;">${h(n.title)}</div>
+          <div style="font-size: 12px; color: var(--txt); margin-bottom: 6px;">${h(n.message)}</div>
+          <div style="font-size: 10px; color: var(--mut);">${new Date(n.createdAt).toLocaleString()}</div>
         </div>
       `).join('');
     }
-
-    const placementRes = await api('/api/ad-placements');
-    const placements = placementRes.data;
-    
-    if (placements && placements.top && placements.top.html) {
-      el('homeNotices').innerHTML = placements.top.html;
-      el('homeNotices').style.background = 'transparent';
-      el('homeNotices').style.border = 'none';
-    } else {
-      if(data && data.length > 0) {
-        const n = data[0];
-        el('homeNotices').innerHTML = `
-        <div class="card" style="background: rgba(255,127,0,0.1); border-color: var(--acc); padding:12px;">
-          <div style="font-weight: 700; color: var(--acc); margin-bottom: 2px; font-size:12px;">${h(n.title)}</div>
-          <div style="font-size: 11px; color: var(--txt);">${h(n.message)}</div>
-        </div>`;
-      } else {
-        el('homeNotices').innerHTML = '<div class="card" style="text-align: center; font-size: 11px; color: var(--mut); padding:10px;">No new notices.</div>';
-      }
-    }
   } catch(e) {}
+}
+
+function openNotificationsModal() {
+  el('notifyModal').classList.add('active');
 }
 
 function closeModal(id) {
