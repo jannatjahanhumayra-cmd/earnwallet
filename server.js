@@ -81,7 +81,6 @@ const MIN_WITHDRAW = Number(process.env.MIN_WITHDRAW || 100);
 const REFERRAL_BONUS = Number(process.env.REFERRAL_BONUS || 0);
 
 const REQUIRED_REFERRAL_ADS = 20;
-const REQUIRED_SUCCESSFUL_REFERRALS = 10;
 
 const TELEGRAM_BOT_USERNAME = String(
   process.env.TELEGRAM_BOT_USERNAME || 'EarnWalle_tBot'
@@ -109,7 +108,8 @@ const DEFAULT_APP_SETTINGS = {
   maintenanceMessage:
     'We are currently updating EarnWallet. Please try again later.',
   supportUrl: '',
-  minWithdraw: MIN_WITHDRAW
+  minWithdraw: MIN_WITHDRAW,
+  requiredReferrals: 10 // ডিফল্ট রেফারেল
 };
 
 const DEFAULT_PAYMENT_SETTINGS = {
@@ -647,6 +647,7 @@ app.get('/api/app-config', telegramAuth, async (req, res) => {
         maintenanceMessage: settings.maintenanceMessage,
         supportUrl: settings.supportUrl,
         minWithdraw: settings.minWithdraw,
+        requiredReferrals: settings.requiredReferrals !== undefined ? settings.requiredReferrals : 10,
         payments
       }
     });
@@ -979,7 +980,7 @@ app.get('/api/referrals', telegramAuth, async (req, res) => {
         successfulCount,
         totalCount: referrals.length,
         inProgressCount: referrals.length - successfulCount,
-        requiredSuccessfulReferrals: REQUIRED_SUCCESSFUL_REFERRALS,
+        requiredSuccessfulReferrals: 10, // এটি ফ্রন্টএন্ডে দেখানোর জন্য, ইউজার অ্যাপে API থেকে নিবে
         requiredAdsPerReferral: REQUIRED_REFERRAL_ADS,
         link: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=ref_${uid}`,
         bonus: REFERRAL_BONUS,
@@ -1035,6 +1036,10 @@ app.post('/api/withdraw', telegramAuth, async (req, res) => {
       ? Number(settingsSnap.data().minWithdraw || MIN_WITHDRAW)
       : MIN_WITHDRAW;
 
+    const reqRef = settingsSnap.exists && settingsSnap.data().requiredReferrals !== undefined 
+      ? Number(settingsSnap.data().requiredReferrals) 
+      : 10;
+
     const payments = { ...DEFAULT_PAYMENT_SETTINGS, ...(paymentSnap.exists ? paymentSnap.data() : {}) };
 
     const paymentKey = method === 'bKash' ? 'bKash' : method === 'Nagad' ? 'Nagad' : method === 'Binance USDT' ? 'USDT' : null;
@@ -1058,10 +1063,10 @@ app.post('/api/withdraw', telegramAuth, async (req, res) => {
     const referralDocs = await db.collection('referrals').where('referrerId', '==', uid).get();
     const successful = referralDocs.docs.filter(d => d.data().status === 'successful').length;
 
-    if (successful < REQUIRED_SUCCESSFUL_REFERRALS) {
+    if (successful < reqRef) {
       return res.status(403).json({
         success: false,
-        error: `Withdrawal locked. You need ${REQUIRED_SUCCESSFUL_REFERRALS} successful referrals. Current: ${successful}.`
+        error: `Withdrawal locked. You need ${reqRef} successful referrals. Current: ${successful}.`
       });
     }
 
@@ -1243,9 +1248,6 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 // ==========================================
 // ADMIN USERS
 // ==========================================
-// ==========================================
-// ADMIN USERS
-// ==========================================
 
 app.get('/api/admin/users', adminAuth, async (req, res) => {
   try {
@@ -1256,7 +1258,6 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
   }
 });
 
-// ১. ইউজার ব্যান / আনব্যান
 app.post('/api/admin/ban', adminAuth, async (req, res) => {
   try {
     const telegramId = String(req.body.telegramId || '');
@@ -1280,7 +1281,6 @@ app.post('/api/admin/ban', adminAuth, async (req, res) => {
   }
 });
 
-// ২. ইউজারের ব্যালেন্স অ্যাড বা সাব করার API
 app.post('/api/admin/update-balance', adminAuth, async (req, res) => {
   try {
     const telegramId = String(req.body.telegramId || '');
@@ -1705,11 +1705,16 @@ app.put('/api/admin/settings', adminAuth, async (req, res) => {
       maintenance: body.maintenance === true,
       maintenanceMessage: String(body.maintenanceMessage || DEFAULT_APP_SETTINGS.maintenanceMessage).trim().slice(0, 500),
       supportUrl: String(body.supportUrl || '').trim().slice(0, 500),
-      minWithdraw: Number(body.minWithdraw)
+      minWithdraw: Number(body.minWithdraw),
+      requiredReferrals: Number(body.requiredReferrals || 0)
     };
 
     if (!Number.isFinite(settings.minWithdraw) || settings.minWithdraw < 1 || settings.minWithdraw > 1000000) {
       return res.status(400).json({ success: false, error: 'Invalid minimum withdrawal.' });
+    }
+    
+    if (!Number.isFinite(settings.requiredReferrals) || settings.requiredReferrals < 0) {
+      return res.status(400).json({ success: false, error: 'Invalid required referrals.' });
     }
 
     if (settings.supportUrl) {
