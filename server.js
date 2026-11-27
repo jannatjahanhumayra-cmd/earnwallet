@@ -1005,6 +1005,32 @@ app.post('/api/tasks/:id/submit', telegramAuth, async (req, res) => {
   }
 });
 
+
+// ==========================================
+// USER LEADERBOARD (TOP WITHDRAWERS)
+// ==========================================
+app.get('/api/leaderboard', telegramAuth, async (req, res) => {
+  try {
+    const snap = await getDb().collection('users')
+      .orderBy('withdrawnAmount', 'desc')
+      .limit(10)
+      .get();
+      
+    const topUsers = snap.docs.map((doc, index) => {
+      const data = doc.data();
+      return {
+        rank: index + 1,
+        name: data.firstName || 'Anonymous',
+        photoUrl: data.photoUrl || null,
+        amount: data.withdrawnAmount || 0
+      };
+    });
+
+    res.json({ success: true, data: topUsers });
+  } catch (error) {
+    sendError(res, error, 'Could not load leaderboard.');
+  }
+});
 // ==========================================
 // USER REFERRALS
 // ==========================================
