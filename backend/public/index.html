@@ -1,79 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>EarnWallet</title>
+<title>EarnWallet - Foxi Style</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #0f1420; --card: #1a2233; --line: #2a3550; --txt: #e8edf7; --mut: #8b98b5; --acc: #4c8dff; --ok: #2ecc71; --bad: #ff5c5c; --warn: #f1c40f; }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--txt); padding-bottom: 70px; }
+  :root { 
+    --bg: #0b0f19; 
+    --card: #141a29; 
+    --card-hover: #1c2437;
+    --line: #2a3550; 
+    --txt: #ffffff; 
+    --mut: #8b98b5; 
+    --acc: #ff7f00; /* Orange Accent */
+    --acc-glow: rgba(255, 127, 0, 0.4);
+    --ok: #2ecc71; 
+    --bad: #ff5c5c; 
+    --warn: #f1c40f; 
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Hind Siliguri', system-ui, sans-serif; }
+  body { margin: 0; background: var(--bg); color: var(--txt); padding-bottom: 80px; background-image: radial-gradient(circle at top, rgba(255,127,0,0.05) 0%, transparent 40%); }
   
   /* Loader */
-  #loader { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; font-size: 16px; color: var(--acc); font-weight: bold; text-align: center; padding: 20px;}
+  #loader { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; font-size: 18px; color: var(--acc); font-weight: bold; }
 
   /* Header */
-  header { padding: 16px; display: flex; justify-content: space-between; align-items: center; background: #121828; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
-  .user-info { display: flex; align-items: center; gap: 10px; }
-  .user-info img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--line); border: 1px solid var(--line); }
-  .user-info .name { font-weight: 600; font-size: 15px; }
-  .balance-badge { background: rgba(76, 141, 255, 0.15); color: var(--acc); padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+  header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; background: #0b0f19; position: sticky; top: 0; z-index: 10; }
+  .user-info { display: flex; align-items: center; gap: 12px; }
+  .user-info img { width: 45px; height: 45px; border-radius: 12px; object-fit: cover; border: 2px solid var(--acc); box-shadow: 0 0 10px var(--acc-glow); }
+  .user-info .name { font-weight: 700; font-size: 16px; color: #fff;}
+  .user-info .id { font-size: 11px; color: var(--mut); }
+  .balance-badge { background: rgba(255, 127, 0, 0.1); border: 1px solid var(--acc); color: var(--acc); padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; box-shadow: 0 0 10px var(--acc-glow); }
 
   /* Main Content */
-  main { padding: 16px; }
-  .page { display: none; animation: fadeIn 0.2s; }
+  main { padding: 16px 20px; }
+  .page { display: none; animation: fadeIn 0.3s ease; }
   .page.active { display: block; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
   /* Cards & Grid */
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .stat-box { background: #121828; border: 1px solid var(--line); padding: 12px; border-radius: 10px; text-align: center; }
-  .stat-box .k { font-size: 11px; color: var(--mut); text-transform: uppercase; }
-  .stat-box .v { font-size: 18px; font-weight: bold; margin-top: 4px; color: var(--txt); }
+  .card { background: var(--card); border: 1px solid rgba(255,127,0,0.1); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .card-title { font-size: 18px; font-weight: 700; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; }
+  
+  /* Profile Specific */
+  .profile-card { display: flex; flex-direction: column; gap: 12px; }
+  .profile-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .profile-header img { width: 60px; height: 60px; border-radius: 16px; border: 2px solid var(--line); }
+  .profile-name { font-size: 20px; font-weight: 700; margin: 0; }
+  .profile-level { color: var(--warn); font-size: 12px; display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+  .wallet-balance { font-size: 32px; font-weight: 700; color: #fff; margin: 10px 0; display: flex; align-items: baseline; gap: 4px;}
+  .wallet-balance span { font-size: 14px; color: var(--mut); font-weight: normal; }
 
   /* Buttons */
-  .btn { width: 100%; background: var(--acc); color: #fff; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; display: inline-block; }
-  .btn:active { opacity: 0.8; }
-  .btn.ok { background: var(--ok); } .btn.bad { background: var(--bad); } .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--txt); }
-  .btn.sm { padding: 8px 12px; font-size: 13px; width: auto; }
+  .btn { width: 100%; background: linear-gradient(90deg, #ff7f00, #ff5500); color: #fff; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 15px var(--acc-glow); transition: transform 0.1s;}
+  .btn:active { transform: scale(0.98); }
+  .btn.ghost { background: var(--card-hover); border: 1px solid var(--line); color: var(--txt); box-shadow: none; }
+  .btn.sm { padding: 8px 16px; font-size: 13px; width: auto; border-radius: 8px; }
 
   /* Inputs */
-  input, select { width: 100%; background: #0d1322; border: 1px solid var(--line); color: var(--txt); padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
-  label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; }
+  input, select { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--txt); padding: 14px; border-radius: 12px; font-size: 15px; margin-bottom: 12px; font-family: 'Hind Siliguri'; }
+  input:focus, select:focus { border-color: var(--acc); outline: none; }
+  label { display: block; font-size: 13px; color: var(--mut); margin-bottom: 8px; }
 
-  /* Live Feed Ticker */
-  .live-feed-wrapper { background: #121828; border-radius: 8px; padding: 8px 12px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 16px; position: relative;}
+  /* Tabs (Foxi style) */
+  .tabs { display: flex; background: var(--card); padding: 6px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--line); }
+  .tab { flex: 1; text-align: center; padding: 10px; font-size: 14px; color: var(--mut); font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+  .tab.active { background: linear-gradient(90deg, #ff7f00, #ff5500); color: #fff; box-shadow: 0 2px 10px var(--acc-glow); }
+
+  /* Lists (Tasks, History) */
+  .list-item { background: var(--card); border: 1px solid var(--line); padding: 16px; border-radius: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .list-item .left { display: flex; align-items: center; gap: 14px; }
+  .list-item img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; background: var(--bg); border: 1px solid var(--line); }
+  .list-item .title { font-weight: 700; font-size: 15px; margin-bottom: 4px;}
+  .list-item .subtitle { font-size: 12px; color: var(--mut); }
+  .list-item .reward { color: var(--ok); font-weight: 800; font-size: 16px; text-align: right; }
+
+  /* Live Feed */
+  .live-feed-wrapper { background: rgba(255, 127, 0, 0.1); border: 1px solid rgba(255, 127, 0, 0.2); border-radius: 12px; padding: 10px 14px; overflow: hidden; margin-bottom: 20px; }
   .live-feed { display: inline-block; white-space: nowrap; animation: scrollText 20s linear infinite; }
-  .live-item { display: inline-flex; align-items: center; gap: 6px; margin-right: 30px; font-size: 13px; color: var(--mut); }
-  .live-item b { color: var(--ok); }
+  .live-item { display: inline-flex; align-items: center; gap: 8px; margin-right: 30px; font-size: 13px; color: var(--mut); }
+  .live-item b { color: var(--acc); }
   @keyframes scrollText { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
-  /* Lists (Tasks, Ads, History) */
-  .list-item { display: flex; align-items: center; justify-content: space-between; background: #121828; border: 1px solid var(--line); padding: 12px; border-radius: 10px; margin-bottom: 10px; }
-  .list-item .left { display: flex; align-items: center; gap: 10px; overflow: hidden; }
-  .list-item img { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; background: var(--line); flex-shrink: 0;}
-  .list-item .title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;}
-  .list-item .subtitle { font-size: 12px; color: var(--mut); }
-  .list-item .right { text-align: right; flex-shrink: 0; margin-left: 10px;}
-  .list-item .reward { color: var(--ok); font-weight: bold; font-size: 14px; }
-
   /* Bottom Nav */
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #121828; border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 10px 0 15px 0; z-index: 10; }
-  .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: var(--mut); cursor: pointer; gap: 4px; }
-  .nav-item.active { color: var(--acc); font-weight: bold; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 12px 0 20px 0; z-index: 10; border-radius: 24px 24px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: var(--mut); cursor: pointer; gap: 4px; transition: 0.3s; }
+  .nav-item.active { color: var(--acc); }
+  .nav-item.active svg { filter: drop-shadow(0 0 6px var(--acc-glow)); }
   .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
 
   /* Modal */
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
   .modal.active { display: flex; }
-  .modal-content { background: var(--card); width: 100%; max-width: 400px; border-radius: 12px; padding: 20px; border: 1px solid var(--line); max-height: 90vh; overflow-y: auto;}
+  .modal-content { background: var(--card); width: 100%; max-width: 400px; border-radius: 20px; padding: 24px; border: 1px solid var(--line); max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
 
-  /* Ad Timer */
-  .ad-timer { font-size: 28px; font-weight: bold; color: var(--acc); text-align: center; margin: 20px 0; }
-  
-  .notice-badge { background: rgba(241, 196, 15, 0.2); color: var(--warn); font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold;}
+  .ad-timer { font-size: 36px; font-weight: 800; color: var(--acc); text-align: center; margin: 24px 0; text-shadow: 0 0 20px var(--acc-glow); }
 </style>
 </head>
 <body>
@@ -82,104 +105,140 @@
 
 <header id="app-header" style="display:none;">
   <div class="user-info">
-    <img id="userPic" src="" alt="User" onerror="this.src='https://ui-avatars.com/api/?name=U&background=2a3550&color=fff'" />
+    <img id="userPic" src="" alt="User" onerror="this.src='https://ui-avatars.com/api/?name=U&background=141a29&color=ff7f00'" />
     <div>
       <div class="name" id="userName">User</div>
-      <div style="font-size: 11px; color: var(--mut);">EarnWallet User</div>
+      <div class="id" id="headerId">ID: 0</div>
     </div>
   </div>
-  <div class="balance-badge" id="headerBalance">0 Coins</div>
+  <div class="balance-badge" id="headerBalance">0</div>
 </header>
 
 <main id="app-main" style="display:none;">
   <!-- HOME PAGE -->
   <section id="page-home" class="page active">
-    <div class="card" style="background: linear-gradient(135deg, #1a2233, #0f1420); text-align: center;">
-      <div style="font-size: 12px; color: var(--mut); text-transform: uppercase;">Total Balance</div>
-      <div style="font-size: 32px; font-weight: bold; color: var(--ok); margin: 8px 0;" id="homeBalance">0</div>
-      <div class="grid-2" style="margin-top: 16px;">
-        <div class="stat-box"><div class="k">Today's Earn</div><div class="v" id="todayEarn">0</div></div>
-        <div class="stat-box"><div class="k">Total Earned</div><div class="v" id="totalEarn">0</div></div>
+    <div class="card" style="background: linear-gradient(145deg, #141a29, #0b0f19); border-color: var(--acc);">
+      <div style="font-size: 13px; color: var(--mut);">আপনার মোট ব্যালেন্স</div>
+      <div class="wallet-balance" id="homeBalance">0 <span>USDT</span></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 11px; color: var(--mut);">আজকের আর্নিং</div>
+          <div style="font-size: 16px; font-weight: 700; color: var(--ok); margin-top: 4px;" id="todayEarn">0</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 11px; color: var(--mut);">মোট আর্নিং</div>
+          <div style="font-size: 16px; font-weight: 700; color: var(--txt); margin-top: 4px;" id="totalEarn">0</div>
+        </div>
       </div>
     </div>
 
-    <h3 style="font-size: 14px; margin: 16px 0 10px 0;">🔴 Live Withdrawals</h3>
     <div class="live-feed-wrapper">
       <div class="live-feed" id="liveFeed">
-        <div class="live-item">Loading live feed...</div>
+        <div class="live-item">Loading...</div>
       </div>
     </div>
 
-    <h3 style="font-size: 14px; margin: 16px 0 10px 0;">📢 Latest Notices</h3>
+    <h3 class="card-title">📢 নোটিশ</h3>
     <div id="homeNotices">
-      <div class="card" style="padding: 12px; text-align: center; font-size: 13px; color: var(--mut);">No active notices right now.</div>
+      <div class="card" style="text-align: center; font-size: 13px; color: var(--mut);">কোনো নোটিশ নেই</div>
     </div>
-  </section>
-
-  <!-- ADS PAGE -->
-  <section id="page-ads" class="page">
-    <h3 style="font-size: 16px; margin-bottom: 12px;">Watch & Earn</h3>
-    <div id="adsList"></div>
   </section>
 
   <!-- TASKS PAGE -->
   <section id="page-tasks" class="page">
-    <h3 style="font-size: 16px; margin-bottom: 12px;">Available Tasks</h3>
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">অ্যাক্টিভিটি সেন্টার</h2>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTaskTab('all', this)">🏆 অর্জন</div>
+      <div class="tab" onclick="switchTaskTab('ads', this)">🎁 ইভেন্ট</div>
+      <div class="tab" onclick="switchTaskTab('daily', this)">🔥 দৈনিক</div>
+    </div>
+
     <div id="tasksList"></div>
+    <div id="adsList"></div>
   </section>
 
-  <!-- REFER PAGE -->
-  <section id="page-refer" class="page">
-    <div class="card" style="text-align: center;">
-      <h3 style="margin: 0 0 8px 0;">Invite & Earn</h3>
-      <p style="font-size: 13px; color: var(--mut); margin-bottom: 16px;">Invite friends and earn bonus!</p>
-      <div style="background: #0d1322; padding: 12px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 12px; word-break: break-all;" id="refLink">...</div>
-      <button class="btn" onclick="copyRef()">Copy Link</button>
-    </div>
-    <div class="card">
-      <h3 style="font-size: 14px; margin: 0 0 10px 0;">Your Referrals</h3>
-      <div class="grid-2" style="margin-bottom: 12px;">
-        <div class="stat-box"><div class="k">Total</div><div class="v" id="refTotal">0</div></div>
-        <div class="stat-box"><div class="k">Successful</div><div class="v" id="refSuccess">0</div></div>
+  <!-- RANK PAGE (Leaderboard) -->
+  <section id="page-rank" class="page">
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">লিডারবোর্ড</h2>
+    <div class="card" style="background: linear-gradient(135deg, #ff7f00, #ff5500); color: #fff; text-align: center;">
+      <h3 style="margin: 0 0 10px 0; font-size: 18px;">বন্ধুদের আমন্ত্রণ জানান</h3>
+      <div style="display: flex; justify-content: space-around; margin-bottom: 16px;">
+        <div><div style="font-size: 11px; opacity: 0.8;">কমিশন</div><div style="font-size: 16px; font-weight: 700;">0.00</div></div>
+        <div><div style="font-size: 11px; opacity: 0.8;">আমন্ত্রিত</div><div style="font-size: 16px; font-weight: 700;" id="refTotalTop">0</div></div>
+        <div><div style="font-size: 11px; opacity: 0.8;">কমিশনের হার</div><div style="font-size: 16px; font-weight: 700;">10%</div></div>
       </div>
-      <div id="refList"></div>
+      <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; word-break: break-all;" id="refLinkTop">...</div>
+      <button class="btn ghost" style="background: #fff; color: #ff5500; box-shadow: none;" onclick="copyRef()">🔗 কপি করুন</button>
+    </div>
+
+    <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+      <div><div style="font-size: 20px; font-weight: 800; color: var(--acc);">100+</div><div style="font-size: 11px; color: var(--mut);">মোট কাজ</div></div>
+      <div><div style="font-size: 20px; font-weight: 800; color: var(--ok);">$500+</div><div style="font-size: 11px; color: var(--mut);">মোট পুরস্কার</div></div>
     </div>
   </section>
 
-  <!-- WALLET PAGE -->
-  <section id="page-wallet" class="page">
-    <div class="card">
-      <h3 style="font-size: 16px; margin: 0 0 12px 0;">Withdraw Money</h3>
-      <p style="font-size: 12px; color: var(--warn); margin-top: 0; margin-bottom: 12px;" id="wdRuleText"></p>
-      
-      <label>Amount (Min: <span id="minW">100</span>)</label>
-      <input type="number" id="wdAmount" placeholder="Enter amount..." />
-      <label>Method</label>
-      <select id="wdMethod">
-        <option value="bKash">bKash</option>
-        <option value="Nagad">Nagad</option>
-        <option value="Binance USDT">Binance USDT</option>
-      </select>
-      <label>Account Number / Address</label>
-      <input type="text" id="wdAccount" placeholder="Enter account..." />
-      <button class="btn" onclick="requestWithdraw()">Request Withdraw</button>
+  <!-- CAMPAIGN (REFER) PAGE -->
+  <section id="page-refer" class="page">
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">ক্যাম্পেইন</h2>
+    <div class="card" style="text-align: center;">
+      <h3 style="margin: 0 0 8px 0;">আপনার রেফারেল লিংক</h3>
+      <div style="background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 12px; word-break: break-all; font-size: 13px;" id="refLink">...</div>
+      <button class="btn" onclick="copyRef()">লিংক কপি করুন</button>
     </div>
     
-    <h3 style="font-size: 14px; margin: 16px 0 10px 0;">History</h3>
-    <div id="historyList"></div>
+    <h3 class="card-title">আপনার রেফারেল</h3>
+    <div id="refList"></div>
   </section>
 
   <!-- PROFILE PAGE -->
   <section id="page-profile" class="page">
-    <div class="card" style="text-align: center;">
-      <img id="profPic" src="" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px; background: var(--line); border: 2px solid var(--acc);" onerror="this.src='https://ui-avatars.com/api/?name=U&background=2a3550&color=fff'" />
-      <h3 style="margin: 0;" id="profName">User</h3>
-      <p style="font-size: 13px; color: var(--mut); margin: 4px 0;" id="profId">ID: 0</p>
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">প্রোফাইল</h2>
+    <div class="card profile-card">
+      <div class="profile-header">
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <img id="profPic" src="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=141a29&color=ff7f00'" />
+          <div>
+            <h3 class="profile-name" id="profName">User</h3>
+            <div class="profile-level">👑 Lv.1 নতুন</div>
+          </div>
+        </div>
+        <div style="background: rgba(255,127,0,0.1); border: 1px solid var(--acc); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--acc);">
+          বিশ্বাস <span id="profBalanceTop">0</span> >
+        </div>
+      </div>
     </div>
+
     <div class="card">
-      <h3 style="font-size: 14px; margin: 0 0 10px 0;">Notifications</h3>
-      <div id="notifyList"></div>
+      <div class="card-title" style="font-size: 15px;">💼 আমার ওয়ালেট</div>
+      <div class="wallet-balance" id="profWalletBalance">0 <span>USDT</span></div>
+      <button class="btn" onclick="switchPage('wallet', document.querySelector('.nav-item:nth-child(4)'))">⬇️ উত্তোলন</button>
     </div>
+
+    <div class="card">
+      <div class="card-title" style="font-size: 15px;">🔔 নোটিফিকেশন</div>
+      <div id="notifyList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+  </section>
+
+  <!-- WALLET PAGE (Hidden in nav, accessed via profile) -->
+  <section id="page-wallet" class="page">
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">উত্তোলন (Withdraw)</h2>
+    <div class="card">
+      <p style="font-size: 13px; color: var(--warn); margin-top: 0;" id="wdRuleText"></p>
+      <label>পরিমাণ (সর্বনিম্ন: <span id="minW">100</span>)</label>
+      <input type="number" id="wdAmount" placeholder="পরিমাণ লিখুন" />
+      
+      <label>পেমেন্ট মেথড</label>
+      <select id="wdMethod"></select>
+      
+      <label>অ্যাকাউন্ট নম্বর</label>
+      <input type="text" id="wdAccount" placeholder="বিকাশ/নগদ নম্বর" />
+      
+      <button class="btn" onclick="requestWithdraw()">রিকোয়েস্ট পাঠান</button>
+    </div>
+    
+    <h3 class="card-title">হিস্টোরি</h3>
+    <div id="historyList"></div>
   </section>
 </main>
 
@@ -187,27 +246,23 @@
 <nav class="bottom-nav" id="app-nav" style="display:none;">
   <div class="nav-item active" onclick="switchPage('home', this)">
     <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    Home
-  </div>
-  <div class="nav-item" onclick="switchPage('ads', this)">
-    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-    Ads
+    হোম
   </div>
   <div class="nav-item" onclick="switchPage('tasks', this)">
-    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-    Tasks
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    টাস্ক
+  </div>
+  <div class="nav-item" onclick="switchPage('rank', this)">
+    <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2z"/></svg>
+    র‍্যাংক
   </div>
   <div class="nav-item" onclick="switchPage('refer', this)">
     <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-    Refer
-  </div>
-  <div class="nav-item" onclick="switchPage('wallet', this)">
-    <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-    Wallet
+    ক্যাম্পেইন
   </div>
   <div class="nav-item" onclick="switchPage('profile', this)">
     <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-    Profile
+    প্রোফাইল
   </div>
 </nav>
 
@@ -215,28 +270,28 @@
 <!-- Task Modal -->
 <div class="modal" id="taskModal">
   <div class="modal-content">
-    <h3 id="tmTitle" style="margin-top:0;">Task Title</h3>
-    <div id="tmInst" style="font-size:13px; color:var(--mut); white-space: pre-wrap; background: #0d1322; padding: 10px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 12px; max-height: 150px; overflow-y: auto;"></div>
+    <h3 id="tmTitle" style="margin-top:0; font-size: 20px;">Task Title</h3>
+    <div id="tmInst" style="font-size:14px; color:var(--mut); white-space: pre-wrap; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--line); margin-bottom: 16px; max-height: 150px; overflow-y: auto;"></div>
     
-    <div id="tmLinkWrap" style="margin-bottom:12px;"></div>
+    <div id="tmLinkWrap" style="margin-bottom:16px;"></div>
     
     <div id="tmProofWrap">
-      <label>Submit Proof (Link or Code)</label>
-      <input type="text" id="tmProof" placeholder="https://... or code" />
+      <label>প্রুফ সাবমিট করুন (লিংক বা কোড)</label>
+      <input type="text" id="tmProof" placeholder="https://... বা কোড" />
     </div>
-    <button class="btn" onclick="submitTask()">Submit Task</button>
-    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('taskModal')">Cancel</button>
+    <button class="btn" onclick="submitTask()">সাবমিট করুন</button>
+    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('taskModal')">বাতিল</button>
   </div>
 </div>
 
 <!-- Ad Modal -->
 <div class="modal" id="adModal">
   <div class="modal-content" style="text-align:center;">
-    <h3 style="margin-top:0;">Watching Ad</h3>
+    <h3 style="margin-top:0; font-size: 20px;">অ্যাড দেখছেন</h3>
     <div class="ad-timer" id="adTimer">20s</div>
-    <p style="font-size:12px; color:var(--mut);" id="adUrlText">Please wait...</p>
-    <button class="btn" id="adClaimBtn" style="display:none;" onclick="claimAd()">Claim Reward</button>
-    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('adModal')">Close</button>
+    <p style="font-size:12px; color:var(--mut);" id="adUrlText">অপেক্ষা করুন...</p>
+    <button class="btn" id="adClaimBtn" style="display:none;" onclick="claimAd()">রিওয়ার্ড নিন</button>
+    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('adModal')">বন্ধ করুন</button>
   </div>
 </div>
 
@@ -256,7 +311,7 @@ let state = {
 
 function el(id) { return document.getElementById(id); }
 function h(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function fmt(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+function fmt(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 3 }); }
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -274,44 +329,36 @@ async function api(path, opts = {}) {
 
 async function boot() {
   if (!INIT) {
-    el('loader').innerHTML = '❌ Please open from Telegram Bot.';
+    el('loader').innerHTML = '❌ টেলিগ্রাম বট থেকে ওপেন করুন।';
     return;
   }
   try {
-    // 1. Login/Register
     await api('/api/auth', { method: 'POST' });
-    
-    // 2. Load Config
     const cfg = await api('/api/app-config');
     state.config = cfg.data;
     
     if (state.config.maintenance) {
-      el('loader').innerHTML = `🛠 Maintenance<br><span style="font-size:14px;color:#888;margin-top:10px;display:block;">${h(state.config.maintenanceMessage)}</span>`;
+      el('loader').innerHTML = `🛠 মেইনটেন্যান্স<br><span style="font-size:14px;color:#888;margin-top:10px;display:block;">${h(state.config.maintenanceMessage)}</span>`;
       return;
     }
     
-    // 3. Load Profile
     await loadProfile();
     
-    // Show UI
     el('loader').style.display = 'none';
     el('app-header').style.display = 'flex';
     el('app-main').style.display = 'block';
     el('app-nav').style.display = 'flex';
 
-    // Load initial data
     loadLiveFeed();
     loadAds();
     loadTasks();
     loadReferrals();
     loadWallet();
     loadNotifications();
-
-    // Check payment methods and show/hide options in select
     updatePaymentOptions();
 
   } catch (e) {
-    el('loader').innerHTML = `❌ Error: ${h(e.message)}`;
+    el('loader').innerHTML = `❌ এরর: ${h(e.message)}`;
   }
 }
 
@@ -319,26 +366,42 @@ async function loadProfile() {
   const { data } = await api('/api/me');
   state.user = data;
   
-  const picUrl = data.photoUrl || 'https://ui-avatars.com/api/?name=' + (data.firstName || 'U') + '&background=2a3550&color=fff';
+  const picUrl = data.photoUrl || 'https://ui-avatars.com/api/?name=' + (data.firstName || 'U') + '&background=141a29&color=ff7f00';
+  const usdBalance = (Number(data.balance) / 100).toFixed(3); // ডেমো কনভার্সন (ইউজার যা চায়)
   
-  // Update UI
   el('userName').textContent = data.firstName || 'User';
+  el('headerId').textContent = 'ID: ' + data.telegramId;
   el('userPic').src = picUrl;
-  el('headerBalance').textContent = fmt(data.balance) + ' Coins';
-  el('homeBalance').textContent = fmt(data.balance);
+  el('headerBalance').innerHTML = `<span style="font-size:10px">$</span> ` + usdBalance;
+  
+  el('homeBalance').innerHTML = usdBalance + ' <span>USDT</span>';
   el('todayEarn').textContent = fmt(data.todayEarnings);
   el('totalEarn').textContent = fmt(data.totalEarnings);
   
   el('profPic').src = picUrl;
   el('profName').textContent = data.firstName || 'User';
-  el('profId').textContent = 'ID: ' + data.telegramId;
+  el('profWalletBalance').innerHTML = usdBalance + ' <span>USDT</span>';
+  el('profBalanceTop').textContent = data.balance;
 }
 
 function switchPage(pageId, navEl) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el('page-' + pageId).classList.add('active');
-  navEl.classList.add('active');
+  if(navEl) navEl.classList.add('active');
+}
+
+function switchTaskTab(type, elm) {
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  elm.classList.add('active');
+  
+  if(type === 'all') {
+    el('tasksList').style.display = 'block';
+    el('adsList').style.display = 'none';
+  } else {
+    el('tasksList').style.display = 'none';
+    el('adsList').style.display = 'block';
+  }
 }
 
 // --- HOME & LIVE FEED ---
@@ -346,7 +409,7 @@ async function loadLiveFeed() {
   try {
     const { data } = await api('/api/live-withdrawals');
     if (!data.length) {
-      el('liveFeed').innerHTML = '<div class="live-item" style="color:var(--mut)">No recent withdrawals.</div>';
+      el('liveFeed').innerHTML = '<div class="live-item" style="color:var(--mut)">সাম্প্রতিক কোনো উইথড্র নেই।</div>';
       return;
     }
     el('liveFeed').innerHTML = data.map(x => `
@@ -363,21 +426,21 @@ async function loadAds() {
     const { data } = await api('/api/ads');
     state.ads = data;
     if (!data.length) {
-      el('adsList').innerHTML = '<p class="muted" style="text-align:center;">No ads available right now.</p>';
+      el('adsList').innerHTML = '<p class="muted" style="text-align:center;">এখন কোনো অ্যাড নেই।</p>';
       return;
     }
     el('adsList').innerHTML = data.map(a => `
       <div class="list-item">
         <div class="left">
-          ${a.bannerUrl ? `<img src="${h(a.bannerUrl)}" onerror="this.style.display='none'" />` : `<div style="width:45px;height:45px;background:var(--line);border-radius:8px;"></div>`}
+          ${a.bannerUrl ? `<img src="${h(a.bannerUrl)}" onerror="this.style.display='none'" />` : `<div style="width:50px;height:50px;background:var(--line);border-radius:12px;"></div>`}
           <div>
             <div class="title">${h(a.title)}</div>
-            <div class="subtitle">${a.duration} seconds</div>
+            <div class="subtitle">${a.duration} সেকেন্ড</div>
           </div>
         </div>
         <div class="right">
           <div class="reward">+${h(a.reward)}</div>
-          <button class="btn sm" style="margin-top:4px;" onclick='startAd("${h(a.id)}")'>Watch</button>
+          <button class="btn sm" style="margin-top:8px;" onclick='startAd("${h(a.id)}")'>দেখুন</button>
         </div>
       </div>
     `).join('');
@@ -390,7 +453,7 @@ async function startAd(id) {
     state.currentAd = data;
     
     el('adModal').classList.add('active');
-    el('adUrlText').innerHTML = `Opening link... <br><a href="${h(data.url)}" target="_blank" style="color:var(--acc)">Click here if not opened</a>`;
+    el('adUrlText').innerHTML = `লিংক ওপেন হচ্ছে... <br><a href="${h(data.url)}" target="_blank" style="color:var(--acc)">এখানে ক্লিক করুন</a>`;
     window.open(data.url, '_blank');
     
     let timeLeft = data.duration;
@@ -402,8 +465,8 @@ async function startAd(id) {
       el('adTimer').textContent = timeLeft + 's';
       if (timeLeft <= 0) {
         clearInterval(timer);
-        el('adTimer').textContent = 'Done!';
-        el('adClaimBtn').style.display = 'block';
+        el('adTimer').textContent = 'সম্পন্ন!';
+        el('adClaimBtn').style.display = 'flex';
       }
     }, 1000);
   } catch(e) { alert(e.message); }
@@ -415,7 +478,7 @@ async function claimAd() {
       method: 'POST',
       body: JSON.stringify({ sessionId: state.currentAd.sessionId })
     });
-    alert(`Success! You earned ${data.reward} coins.`);
+    alert(`সফল! আপনি ${data.reward} কয়েন পেয়েছেন।`);
     closeModal('adModal');
     loadProfile();
     loadAds();
@@ -428,17 +491,17 @@ async function loadTasks() {
     const { data } = await api('/api/tasks');
     state.tasks = data;
     if (!data.length) {
-      el('tasksList').innerHTML = '<p class="muted" style="text-align:center;">No tasks available right now.</p>';
+      el('tasksList').innerHTML = '<p class="muted" style="text-align:center;">এখন কোনো কাজ নেই।</p>';
       return;
     }
     el('tasksList').innerHTML = data.map(t => {
       const isDone = t.submissionStatus === 'pending' || t.submissionStatus === 'approved';
-      const statusStr = t.submissionStatus === 'pending' ? 'Under Review' : (t.submissionStatus === 'approved' ? 'Completed' : 'Available');
+      const statusStr = t.submissionStatus === 'pending' ? 'রিভিউতে আছে' : (t.submissionStatus === 'approved' ? 'সম্পন্ন' : 'উপলব্ধ');
       
       return `
       <div class="list-item">
         <div class="left">
-          ${t.logoUrl ? `<img src="${h(t.logoUrl)}" onerror="this.style.display='none'" />` : `<div style="width:45px;height:45px;background:var(--line);border-radius:8px;"></div>`}
+          ${t.logoUrl ? `<img src="${h(t.logoUrl)}" onerror="this.style.display='none'" />` : `<div style="width:50px;height:50px;background:var(--line);border-radius:12px;"></div>`}
           <div>
             <div class="title">${h(t.title)}</div>
             <div class="subtitle">${statusStr}</div>
@@ -447,8 +510,8 @@ async function loadTasks() {
         <div class="right">
           <div class="reward">+${h(t.reward)}</div>
           ${isDone 
-            ? `<button class="btn sm ghost" disabled style="margin-top:4px;">Done</button>`
-            : `<button class="btn sm" style="margin-top:4px;" onclick='openTask("${h(t.id)}")'>Start</button>`}
+            ? `<button class="btn sm ghost" disabled style="margin-top:8px;">সম্পন্ন</button>`
+            : `<button class="btn sm" style="margin-top:8px;" onclick='openTask("${h(t.id)}")'>শুরু</button>`}
         </div>
       </div>`;
     }).join('');
@@ -461,12 +524,10 @@ function openTask(id) {
   state.currentTask = t;
   
   el('tmTitle').textContent = t.title;
-  
-  // যদি অ্যাডমিন কোনো নিয়ম লেখে, তবে দেখাবে, নয়তো ডিফল্ট মেসেজ
-  el('tmInst').textContent = t.instruction || 'Complete the task to earn reward.';
+  el('tmInst').textContent = t.instruction || 'কাজটি সম্পন্ন করে রিওয়ার্ড নিন।';
   
   if (t.url) {
-    el('tmLinkWrap').innerHTML = `<a href="${h(t.url)}" target="_blank" class="btn ghost" style="display:block; margin-bottom:12px; text-decoration:none;">Go to Link 🔗</a>`;
+    el('tmLinkWrap').innerHTML = `<a href="${h(t.url)}" target="_blank" class="btn ghost" style="text-decoration:none;">লিংকে যান 🔗</a>`;
   } else {
     el('tmLinkWrap').innerHTML = '';
   }
@@ -480,14 +541,14 @@ function openTask(id) {
 async function submitTask() {
   const proof = el('tmProof').value.trim();
   if (state.currentTask.requiresProof && !proof) {
-    return alert('Please provide proof (link or code).');
+    return alert('অনুগ্রহ করে প্রুফ দিন।');
   }
   try {
     await api(`/api/tasks/${state.currentTask.id}/submit`, {
       method: 'POST',
       body: JSON.stringify({ proof })
     });
-    alert('Task submitted successfully! Wait for admin approval.');
+    alert('কাজ সাবমিট হয়েছে! অ্যাডমিন এপ্রুভ করার জন্য অপেক্ষা করুন।');
     closeModal('taskModal');
     loadTasks();
   } catch(e) { alert(e.message); }
@@ -498,23 +559,23 @@ async function loadReferrals() {
   try {
     const { data } = await api('/api/referrals');
     el('refLink').textContent = data.link;
-    el('refTotal').textContent = data.totalCount;
-    el('refSuccess').textContent = data.successfulCount;
+    el('refLinkTop').textContent = data.link;
+    el('refTotalTop').textContent = data.totalCount;
     
     if (!data.referrals.length) {
-      el('refList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No referrals yet.</p>';
+      el('refList').innerHTML = '<p class="muted" style="text-align:center; font-size:13px;">কোনো রেফারেল নেই।</p>';
       return;
     }
     el('refList').innerHTML = data.referrals.map(r => `
-      <div class="list-item" style="padding:10px;">
+      <div class="list-item" style="padding:12px;">
         <div class="left">
           <div>
-            <div class="title" style="font-size:13px;">${h(r.firstName)} ${h(r.lastName)}</div>
+            <div class="title" style="font-size:14px;">${h(r.firstName)} ${h(r.lastName)}</div>
             <div class="subtitle" style="font-size:11px;">ID: ${h(r.telegramId)}</div>
           </div>
         </div>
         <div class="right">
-          <div style="font-size:11px; color:${r.status === 'successful' ? 'var(--ok)' : 'var(--warn)'}">${h(r.status)}</div>
+          <div style="font-size:12px; font-weight:bold; color:${r.status === 'successful' ? 'var(--ok)' : 'var(--warn)'}">${h(r.status)}</div>
         </div>
       </div>
     `).join('');
@@ -524,7 +585,7 @@ async function loadReferrals() {
 function copyRef() {
   const link = el('refLink').textContent;
   navigator.clipboard.writeText(link).then(() => {
-    alert('Referral link copied!');
+    alert('রেফারেল লিংক কপি হয়েছে!');
   });
 }
 
@@ -549,36 +610,33 @@ function updatePaymentOptions() {
   }
   
   if (!hasMethod) {
-    select.innerHTML = `<option value="">No payment methods available</option>`;
+    select.innerHTML = `<option value="">কোনো মেথড চালু নেই</option>`;
   }
 }
 
 async function loadWallet() {
   el('minW').textContent = state.config.minWithdraw || 100;
-  
   const reqRef = state.config.requiredReferrals !== undefined ? state.config.requiredReferrals : 10;
-  el('wdRuleText').textContent = `You need at least ${reqRef} successful referral(s) to enable withdrawal.`;
+  el('wdRuleText').textContent = `উত্তোলনের জন্য কমপক্ষে ${reqRef} টি সফল রেফারেল প্রয়োজন।`;
   
   try {
     const { data } = await api('/api/history');
     if (!data.length) {
-      el('historyList').innerHTML = '<p class="muted" style="text-align:center;">No transactions yet.</p>';
+      el('historyList').innerHTML = '<p class="muted" style="text-align:center;">কোনো হিস্টোরি নেই।</p>';
       return;
     }
     el('historyList').innerHTML = data.map(x => {
-      // ফরম্যাটিং টাইপ নেম
       let typeName = x.type.toUpperCase().replace('_', ' ');
-      
       return `
-      <div class="list-item" style="padding:10px;">
+      <div class="list-item" style="padding:12px;">
         <div class="left">
           <div>
-            <div class="title" style="font-size:13px;">${h(typeName)}</div>
+            <div class="title" style="font-size:14px;">${h(typeName)}</div>
             <div class="subtitle" style="font-size:11px;">${new Date(x.createdAt).toLocaleString()}</div>
           </div>
         </div>
         <div class="right">
-          <div style="font-size:14px; font-weight:bold; color:${x.amount > 0 ? 'var(--ok)' : 'var(--bad)'}">
+          <div style="font-size:15px; font-weight:bold; color:${x.amount > 0 ? 'var(--ok)' : 'var(--bad)'}">
             ${x.amount > 0 ? '+' : ''}${x.amount}
           </div>
           <div style="font-size:10px; color:var(--mut);">${h(x.status)}</div>
@@ -593,14 +651,14 @@ async function requestWithdraw() {
   const method = el('wdMethod').value;
   const account = el('wdAccount').value.trim();
   
-  if (!amount || !account || !method) return alert('Please fill all fields correctly.');
+  if (!amount || !account || !method) return alert('সব ঘর পূরণ করুন।');
   
   try {
     await api('/api/withdraw', {
       method: 'POST',
       body: JSON.stringify({ amount, method, account })
     });
-    alert('Withdrawal request submitted! Wait for admin approval.');
+    alert('উইথড্র রিকোয়েস্ট পাঠানো হয়েছে! অ্যাডমিন এপ্রুভ করলে টাকা পাবেন।');
     el('wdAmount').value = '';
     el('wdAccount').value = '';
     loadWallet();
@@ -611,18 +669,28 @@ async function requestWithdraw() {
 // --- NOTIFICATIONS ---
 async function loadNotifications() {
   try {
-    // এখানে আমরা সরাসরি অ্যাডমিন নোটিফিকেশন API কল করছি না কারণ ওটা adminAuth 
-    // তবে আপাতত খালি রাখছি, ভবিষ্যতে user-specific API বানানো যাবে
-    el('notifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">No new notifications.</p>';
+    const { data } = await api('/api/notifications');
+    if (!data || data.length === 0) {
+      el('notifyList').innerHTML = '<p class="muted" style="text-align:center; font-size:12px;">কোনো নোটিফিকেশন নেই।</p>';
+    } else {
+      el('notifyList').innerHTML = data.map(n => `
+        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+          <div style="font-weight: 700; color: var(--acc); margin-bottom: 4px; font-size:13px;">${h(n.title)}</div>
+          <div style="font-size: 12px; color: var(--txt);">${h(n.message)}</div>
+          <div style="font-size: 10px; color: var(--mut); margin-top: 6px;">${new Date(n.createdAt).toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    const placementRes = await api('/api/ad-placements');
+    const placements = placementRes.data;
     
-    // হোম পেজের নোটিশ (ব্যানার স্লট থেকে)
-    const { data } = await api('/api/ad-placements');
-    if (data && data.top && data.top.html) {
-      el('homeNotices').innerHTML = data.top.html;
+    if (placements && placements.top && placements.top.html) {
+      el('homeNotices').innerHTML = placements.top.html;
       el('homeNotices').style.background = 'transparent';
       el('homeNotices').style.border = 'none';
     } else {
-      el('homeNotices').innerHTML = '<div class="card" style="padding: 12px; text-align: center; font-size: 13px; color: var(--mut);">No active notices right now.</div>';
+      el('homeNotices').innerHTML = '<div class="card" style="text-align: center; font-size: 13px; color: var(--mut);">কোনো নোটিশ নেই</div>';
     }
   } catch(e) {}
 }
