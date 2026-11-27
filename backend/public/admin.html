@@ -26,7 +26,7 @@
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
   th{color:var(--mut);font-size:12px;text-transform:uppercase}
-  input,textarea,select{width:100%;background:#0d1322;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 10px;font-size:13px;margin-top:4px}
+  input,textarea,select{width:100%;background:#0d1322;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 10px;font-size:13px;margin-top:4px; font-family:inherit}
   label{display:block;font-size:12px;color:var(--mut);margin-top:10px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .btn{background:var(--acc);border:none;color:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px;margin-top:10px}
@@ -98,7 +98,11 @@
       <div class="panel">
         <h2>Create Task</h2>
         <label>Task Title</label><input id="taskTitle" />
-        <label>Instruction</label><input id="taskInst" placeholder="Instructions for user..." />
+        
+        <!-- এখানে বড় টেক্সট এরিয়া যোগ করা হলো -->
+        <label>Rules / Instructions (নিয়ম-কানুন)</label>
+        <textarea id="taskInst" rows="4" placeholder="Write details rules for users..."></textarea>
+        
         <label>Work Link</label><input id="taskUrl" placeholder="https://..." />
         <label>Logo Link</label><input id="taskLogo" placeholder="https://..." />
         <div class="row">
@@ -110,7 +114,12 @@
       </div>
       <div class="panel">
         <h2>Tasks List</h2>
-        <div class="scroll"><table><thead><tr><th>Title</th><th>Reward</th><th>Status</th><th>Delete</th></tr></thead><tbody id="tasksBody"></tbody></table></div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Title</th><th>Reward</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="tasksBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -127,7 +136,7 @@
             <thead>
               <tr>
                 <th>User</th>
-                <th>Task</th>
+                <th>Task Title</th>
                 <th>Proof</th>
                 <th>Reward</th>
                 <th>Status</th>
@@ -298,19 +307,93 @@ async function updateBalance(){
 
 // --- TASKS ---
 async function loadTasks(){
-  const { data } = await api('/api/admin/tasks'); state.tasks = data || [];
-  el('tasksBody').innerHTML = state.tasks.map(t => `<tr><td>${h(t.title)}</td><td>${h(t.reward)}</td><td><span class="tag active">${h(t.status)}</span></td><td><button class="btn sm bad" onclick="delTask('${h(t.id)}')">Del</button></td></tr>`).join('');
+  try {
+    const { data } = await api('/api/admin/tasks'); 
+    state.tasks = data || [];
+    
+    el('tasksBody').innerHTML = state.tasks.map(t => {
+      const isActive = t.status === 'active';
+      return `<tr>
+        <td>${h(t.title)}</td>
+        <td>${h(t.reward)}</td>
+        <td><span class="tag ${isActive ? 'active' : 'banned'}">${isActive ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button class="btn sm" style="background:var(--warn); color:#000;" onclick='openEditTask("${h(t.id)}")'>Edit</button>
+          <button class="btn sm ghost" onclick="toggleTask('${h(t.id)}', '${isActive ? 'inactive' : 'active'}')">${isActive ? 'Stop' : 'Start'}</button>
+          <button class="btn sm bad" onclick="delTask('${h(t.id)}')">Del</button>
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="4" class="muted">No tasks</td></tr>';
+  } catch(e) { alert('Error loading tasks'); }
 }
+
 async function createTask(){
   try {
+    const title = el('taskTitle').value;
+    const instruction = el('taskInst').value;
+    const url = el('taskUrl').value;
+    const logoUrl = el('taskLogo').value;
+    const reward = Number(el('taskReward').value);
+    const requiresProof = el('taskProof').value === 'true';
+
+    if(!title || isNaN(reward)) return alert('Title and Reward required');
+
     await api('/api/admin/tasks', { method:'POST', body: JSON.stringify({
-      title: el('taskTitle').value, instruction: el('taskInst').value, url: el('taskUrl').value,
-      logoUrl: el('taskLogo').value, reward: Number(el('taskReward').value), requiresProof: el('taskProof').value === 'true'
+      title, instruction, url, logoUrl, reward, requiresProof
     })});
-    setMsg('taskMsg', 'Task created', true); loadTasks();
+    
+    setMsg('taskMsg', 'Task created successfully', true); 
+    
+    el('taskTitle').value = '';
+    el('taskInst').value = '';
+    el('taskUrl').value = '';
+    el('taskLogo').value = '';
+    el('taskReward').value = '0';
+    
+    loadTasks();
   } catch(e){ setMsg('taskMsg', e.message, false); }
 }
-async function delTask(id){ if(confirm('Delete?')) { await api('/api/admin/tasks/'+id, {method:'DELETE'}); loadTasks(); } }
+
+async function delTask(id){ 
+  if(confirm('Are you sure you want to delete this task?')) { 
+    await api('/api/admin/tasks/'+id, {method:'DELETE'}); 
+    loadTasks(); 
+  } 
+}
+
+async function toggleTask(id, status) {
+  try {
+    await api('/api/admin/tasks/'+id, { method:'PATCH', body: JSON.stringify({ status })});
+    loadTasks();
+  } catch(e) { alert(e.message); }
+}
+
+function openEditTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if(!t) return;
+  
+  const newTitle = prompt("Edit Task Title:", t.title);
+  if(newTitle === null) return;
+  
+  const newInst = prompt("Edit Rules/Instructions:", t.instruction || '');
+  if(newInst === null) return;
+  
+  const newReward = prompt("Edit Reward:", t.reward);
+  if(newReward === null) return;
+
+  editTaskSave(id, newTitle, newInst, Number(newReward));
+}
+
+async function editTaskSave(id, title, instruction, reward) {
+  try {
+    await api('/api/admin/tasks/'+id, {
+      method:'PATCH',
+      body: JSON.stringify({ title, instruction, reward })
+    });
+    alert('Task updated!');
+    loadTasks();
+  } catch(e) { alert(e.message); }
+}
 
 // --- TASK PROOFS (SUBMISSIONS) ---
 async function loadProofs(statusFilter = 'pending') {
@@ -321,17 +404,14 @@ async function loadProofs(statusFilter = 'pending') {
     el('proofsBody').innerHTML = data.map(s => {
       const statusClass = s.status === 'approved' ? 'approved' : s.status === 'rejected' ? 'rejected' : 'pending';
       
-      // প্রুফ টেক্সট বা ছবি চেক করা
       let proofDisplay = '';
       const proofStr = String(s.proof || '').trim();
       
       if (proofStr.match(/^https?:\/\/.*\.(jpeg|jpg|gif|png|webp)/i) || proofStr.startsWith('data:image/')) {
-        // যদি ইউজার ছবির লিংক দেয়
         proofDisplay = `<a href="${h(proofStr)}" target="_blank">
           <img src="${h(proofStr)}" style="max-width:80px; max-height:80px; border-radius:4px; border:1px solid var(--line); object-fit:cover;" alt="Proof" />
         </a>`;
       } else if (proofStr.length > 0) {
-        // যদি ইউজার টেক্সট বা কোড দেয়
         proofDisplay = `<div style="max-width: 180px; max-height: 60px; overflow-y: auto; background: #0d1322; padding: 4px; border-radius: 4px; font-size: 11px; word-break: break-all; border: 1px solid var(--line);" title="${h(proofStr)}">
           ${h(proofStr)}
         </div>`;
@@ -371,7 +451,7 @@ async function processProof(id, status) {
       body: JSON.stringify({ status })
     });
     alert(`Proof ${status} successfully!`);
-    loadProofs('pending'); // রিফ্রেশ
+    loadProofs('pending'); 
   } catch (e) {
     alert(e.message);
   }
