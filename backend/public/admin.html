@@ -99,7 +99,6 @@
         <h2>Create Task</h2>
         <label>Task Title</label><input id="taskTitle" />
         
-        <!-- এখানে বড় টেক্সট এরিয়া যোগ করা হলো -->
         <label>Rules / Instructions (নিয়ম-কানুন)</label>
         <textarea id="taskInst" rows="4" placeholder="Write details rules for users..."></textarea>
         
@@ -169,16 +168,37 @@
       </div>
     </section>
 
-    <!-- WITHDRAWALS -->
+    <!-- WITHDRAWALS (আপডেট করা হয়েছে) -->
     <section data-tab="withdrawals" class="hide">
       <div class="panel">
         <h2>User Withdrawal Requests</h2>
-        <div class="scroll"><table><thead><tr><th>User ID</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Action</th></tr></thead><tbody id="wdBody"></tbody></table></div>
+        <div style="margin-bottom:12px; display:flex; gap:10px; align-items:center;">
+          <input type="date" id="wdDateFilter" style="margin:0; width:auto;" onchange="loadWithdrawals()" />
+          <button class="btn sm ghost" onclick="el('wdDateFilter').value=''; loadWithdrawals();">Clear Filter</button>
+        </div>
+        <div class="scroll-lg">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>User Details</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Account</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="wdBody"></tbody>
+          </table>
+        </div>
       </div>
       <div class="panel">
         <h2>Withdrawal System Rules</h2>
-        <label>Minimum Withdraw</label><input type="number" id="minWithdraw" />
+        <label>Minimum Withdraw</label>
+        <input type="number" id="minWithdraw" />
         <button class="btn" onclick="saveSettings()">Save Rules</button>
+        <div class="msg" id="setMsg"></div>
       </div>
     </section>
 
@@ -289,10 +309,16 @@ function renderUsers(){
 
 function openUser(id){
   const u = state.users.find(x => x.id === id);
-  if(!u) return;
+  if(!u) return alert('User data not found');
   selectedUserId = id;
   el('modalTitle').textContent = (u.firstName || 'User') + "'s Profile";
-  el('modalBody').innerHTML = `ID: ${h(u.id)}<br>Balance: ${h(u.balance)}<br>Earned: ${h(u.totalEarnings)}<br>Status: ${h(u.status)}`;
+  el('modalBody').innerHTML = `
+    <strong>ID:</strong> ${h(u.id)}<br>
+    <strong>Balance:</strong> ${h(u.balance)}<br>
+    <strong>Total Earned:</strong> ${h(u.totalEarnings)}<br>
+    <strong>Completed Tasks:</strong> ${h(u.completedTasks || 0)}<br>
+    <strong>Status:</strong> ${h(u.status)}
+  `;
   el('userModal').classList.remove('hide');
 }
 function closeModal(){ el('userModal').classList.add('hide'); selectedUserId = null; }
@@ -301,8 +327,23 @@ async function toggleBan(id, status){
   await api('/api/admin/ban', { method:'POST', body: JSON.stringify({ telegramId: id, status }) });
   loadUsers(); loadStats();
 }
+
 async function updateBalance(){
-  setMsg('modalMsg', 'Balance update API is not yet added in server.js', false);
+  const amount = Number(el('modalBalance').value);
+  if(!amount || isNaN(amount)) return setMsg('modalMsg', 'Enter a valid amount', false);
+
+  try {
+    await api('/api/admin/update-balance', { 
+      method: 'POST', 
+      body: JSON.stringify({ telegramId: selectedUserId, amount }) 
+    });
+    setMsg('modalMsg', 'Balance updated!', true);
+    el('modalBalance').value = '';
+    await loadUsers(); // লিস্ট রিফ্রেশ
+    openUser(selectedUserId); // পপআপ রিফ্রেশ
+  } catch(e) {
+    setMsg('modalMsg', e.message, false);
+  }
 }
 
 // --- TASKS ---
@@ -475,10 +516,56 @@ async function delAd(id){ if(confirm('Delete?')) { await api('/api/admin/ads/'+i
 
 // --- WITHDRAWALS ---
 async function loadWithdrawals(){
-  const { data } = await api('/api/admin/withdrawals'); state.withdrawals = data || [];
-  el('wdBody').innerHTML = state.withdrawals.map(w => `<tr><td>${h(w.telegramId)}</td><td>${h(w.amount)}</td><td>${h(w.method)}</td><td>${h(w.account)}</td><td><span class="tag ${h(w.status)}">${h(w.status)}</span></td><td>${w.status==='pending'?`<button class="btn sm ok" onclick="processWd('${h(w.id)}','approved')">Approve</button> <button class="btn sm bad" onclick="processWd('${h(w.id)}','rejected')">Reject</button>`:'—'}</td></tr>`).join('');
+  try {
+    const { data } = await api('/api/admin/withdrawals'); 
+    let list = data || [];
+
+    // ডেট ফিল্টার
+    const filterDate = el('wdDateFilter')?.value;
+    if (filterDate) {
+      list = list.filter(w => w.createdAt && w.createdAt.startsWith(filterDate));
+    }
+
+    el('wdBody').innerHTML = list.map(w => {
+      const dateStr = w.createdAt ? new Date(w.createdAt).toLocaleString() : '-';
+      
+      // ইউজারের নাম খোঁজা (যদি state.users এ থাকে)
+      const user = state.users.find(u => String(u.id) === String(w.telegramId));
+      const userName = user ? `${user.firstName} ${user.lastName || ''}` : 'Unknown User';
+
+      return `<tr>
+        <td style="font-size:11px;">${h(dateStr)}</td>
+        <td onclick="openUser('${h(w.telegramId)}')" style="cursor:pointer; color:var(--acc);">
+          <strong>${h(userName)}</strong><br>
+          <span class="muted">ID: ${h(w.telegramId)}</span>
+        </td>
+        <td style="font-weight:bold; color:var(--ok);">${h(w.amount)}</td>
+        <td>${h(w.method)}</td>
+        <td style="font-size:12px;">${h(w.account)}</td>
+        <td><span class="tag ${h(w.status)}">${h(w.status)}</span></td>
+        <td>
+          ${w.status === 'pending' ? `
+            <button class="btn sm ok" onclick="processWd('${h(w.id)}','approved')">Accept</button>
+            <button class="btn sm bad" onclick="processWd('${h(w.id)}','rejected')">Reject</button>
+          ` : '—'}
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7" class="muted">No withdrawals found</td></tr>';
+  } catch(e) {
+    alert('Error loading withdrawals');
+  }
 }
-async function processWd(id, status){ await api('/api/admin/withdrawals/'+id, {method:'POST', body: JSON.stringify({status})}); loadWithdrawals(); loadStats(); }
+
+async function processWd(id, status){ 
+  const action = status === 'approved' ? 'Accept' : 'Reject & Refund';
+  if(!confirm(`Are you sure you want to ${action} this withdrawal?`)) return;
+
+  try {
+    await api('/api/admin/withdrawals/'+id, {method:'POST', body: JSON.stringify({status})}); 
+    loadWithdrawals(); 
+    loadStats(); 
+  } catch(e) { alert(e.message); }
+}
 
 // --- LIVE WITHDRAW ---
 async function loadLive(){
