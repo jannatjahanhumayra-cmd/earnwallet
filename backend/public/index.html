@@ -11,6 +11,17 @@
 </head>
 <body>
 
+<!-- Channel Join Gate (Overlay) -->
+<div id="channelGate" style="position:fixed; inset:0; background:#0b0f19; z-index:1000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;">
+  <h2 style="color:var(--acc); font-size:24px; margin-bottom:10px;">Join Our Channels</h2>
+  <p style="color:var(--mut); font-size:14px; margin-bottom:20px;">You must join our official channels to use the app.</p>
+  
+  <a href="https://t.me/EarnWallet_Official" target="_blank" class="btn" style="text-decoration:none; margin-bottom:12px;">Join Official Channel</a>
+  <a href="https://t.me/All_Official_Channal" target="_blank" class="btn ghost" style="text-decoration:none; margin-bottom:20px;">Join Backup Channel</a>
+  
+  <button class="btn" style="background:var(--ok); box-shadow: 0 4px 15px rgba(46,204,113,0.4);" onclick="verifyChannel()">I have joined, Verify</button>
+</div>
+
 <div id="loader">Loading EarnWallet...</div>
 
 <header id="app-header" style="display:none;">
@@ -21,22 +32,28 @@
       <div class="id" id="headerId">ID: 0</div>
     </div>
   </div>
-  <div class="balance-badge" id="headerBalance">0</div>
+  <div class="balance-badge" id="headerBalance">$0.00</div>
 </header>
 
 <main id="app-main" style="display:none;">
   <!-- HOME PAGE -->
   <section id="page-home" class="page active">
+    
+    <!-- Notifications Section on Top -->
+    <div id="homeNotices" style="margin-bottom:16px;">
+      <div class="card" style="text-align: center; font-size: 13px; color: var(--mut);">No new notices.</div>
+    </div>
+
     <div class="card" style="background: linear-gradient(145deg, #141a29, #0b0f19); border-color: var(--acc);">
-      <div style="font-size: 13px; color: var(--mut);">আপনার মোট ব্যালেন্স</div>
-      <div class="wallet-balance" id="homeBalance">0 <span>USDT</span></div>
+      <div style="font-size: 13px; color: var(--mut);">Your Total Balance</div>
+      <div class="wallet-balance" id="homeBalance">$0.00</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
         <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; text-align: center;">
-          <div style="font-size: 11px; color: var(--mut);">আজকের আর্নিং</div>
+          <div style="font-size: 11px; color: var(--mut);">Today's Earnings</div>
           <div style="font-size: 16px; font-weight: 700; color: var(--ok); margin-top: 4px;" id="todayEarn">0</div>
         </div>
         <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; text-align: center;">
-          <div style="font-size: 11px; color: var(--mut);">মোট আর্নিং</div>
+          <div style="font-size: 11px; color: var(--mut);">Total Earned</div>
           <div style="font-size: 16px; font-weight: 700; color: var(--txt); margin-top: 4px;" id="totalEarn">0</div>
         </div>
       </div>
@@ -47,20 +64,14 @@
         <div class="live-item">Loading...</div>
       </div>
     </div>
-
-    <h3 class="card-title">📢 নোটিশ</h3>
-    <div id="homeNotices">
-      <div class="card" style="text-align: center; font-size: 13px; color: var(--mut);">কোনো নোটিশ নেই</div>
-    </div>
   </section>
 
   <!-- TASKS PAGE -->
   <section id="page-tasks" class="page">
-    <h2 style="font-size: 24px; margin: 0 0 16px 0;">অ্যাক্টিভিটি সেন্টার</h2>
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">Activity Center</h2>
     <div class="tabs">
-      <div class="tab active" onclick="switchTaskTab('all', this)">🏆 অর্জন</div>
-      <div class="tab" onclick="switchTaskTab('ads', this)">🎁 ইভেন্ট</div>
-      <div class="tab" onclick="switchTaskTab('daily', this)">🔥 দৈনিক</div>
+      <div class="tab active" onclick="switchTaskTab('all', this)">🏆 All Tasks</div>
+      <div class="tab" onclick="switchTaskTab('ads', this)">🎁 Watch Ads</div>
     </div>
 
     <div id="tasksList"></div>
@@ -69,85 +80,85 @@
 
   <!-- RANK PAGE (Leaderboard) -->
   <section id="page-rank" class="page">
-    <h2 style="font-size: 24px; margin: 0 0 16px 0;">লিডারবোর্ড</h2>
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">Leaderboard</h2>
     <div class="card" style="background: linear-gradient(135deg, #ff7f00, #ff5500); color: #fff; text-align: center;">
-      <h3 style="margin: 0 0 10px 0; font-size: 18px;">বন্ধুদের আমন্ত্রণ জানান</h3>
+      <h3 style="margin: 0 0 10px 0; font-size: 18px;">Invite Friends</h3>
       <div style="display: flex; justify-content: space-around; margin-bottom: 16px;">
-        <div><div style="font-size: 11px; opacity: 0.8;">কমিশন</div><div style="font-size: 16px; font-weight: 700;">0.00</div></div>
-        <div><div style="font-size: 11px; opacity: 0.8;">আমন্ত্রিত</div><div style="font-size: 16px; font-weight: 700;" id="refTotalTop">0</div></div>
-        <div><div style="font-size: 11px; opacity: 0.8;">কমিশনের হার</div><div style="font-size: 16px; font-weight: 700;">10%</div></div>
+        <div><div style="font-size: 11px; opacity: 0.8;">Commission</div><div style="font-size: 16px; font-weight: 700;">$0.00</div></div>
+        <div><div style="font-size: 11px; opacity: 0.8;">Invited</div><div style="font-size: 16px; font-weight: 700;" id="refTotalTop">0</div></div>
+        <div><div style="font-size: 11px; opacity: 0.8;">Rate</div><div style="font-size: 16px; font-weight: 700;">10%</div></div>
       </div>
       <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; word-break: break-all;" id="refLinkTop">...</div>
-      <button class="btn ghost" style="background: #fff; color: #ff5500; box-shadow: none;" onclick="copyRef()">🔗 কপি করুন</button>
+      <button class="btn ghost" style="background: #fff; color: #ff5500; box-shadow: none;" onclick="copyRef()">🔗 Copy Link</button>
     </div>
 
     <div class="card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
-      <div><div style="font-size: 20px; font-weight: 800; color: var(--acc);">100+</div><div style="font-size: 11px; color: var(--mut);">মোট কাজ</div></div>
-      <div><div style="font-size: 20px; font-weight: 800; color: var(--ok);">$500+</div><div style="font-size: 11px; color: var(--mut);">মোট পুরস্কার</div></div>
+      <div><div style="font-size: 20px; font-weight: 800; color: var(--acc);">100+</div><div style="font-size: 11px; color: var(--mut);">Total Tasks</div></div>
+      <div><div style="font-size: 20px; font-weight: 800; color: var(--ok);">$500+</div><div style="font-size: 11px; color: var(--mut);">Total Paid</div></div>
     </div>
   </section>
 
   <!-- CAMPAIGN (REFER) PAGE -->
   <section id="page-refer" class="page">
-    <h2 style="font-size: 24px; margin: 0 0 16px 0;">ক্যাম্পেইন</h2>
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">Campaign</h2>
     <div class="card" style="text-align: center;">
-      <h3 style="margin: 0 0 8px 0;">আপনার রেফারেল লিংক</h3>
+      <h3 style="margin: 0 0 8px 0;">Your Referral Link</h3>
       <div style="background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 12px; word-break: break-all; font-size: 13px;" id="refLink">...</div>
-      <button class="btn" onclick="copyRef()">লিংক কপি করুন</button>
+      <button class="btn" onclick="copyRef()">Copy Link</button>
     </div>
     
-    <h3 class="card-title">আপনার রেফারেল</h3>
+    <h3 class="card-title">Your Referrals</h3>
     <div id="refList"></div>
   </section>
 
   <!-- PROFILE PAGE -->
   <section id="page-profile" class="page">
-    <h2 style="font-size: 24px; margin: 0 0 16px 0;">প্রোফাইল</h2>
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">Profile</h2>
     <div class="card profile-card">
       <div class="profile-header">
         <div style="display: flex; gap: 16px; align-items: center;">
           <img id="profPic" src="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=141a29&color=ff7f00'" />
           <div>
             <h3 class="profile-name" id="profName">User</h3>
-            <div class="profile-level">👑 Lv.1 নতুন</div>
+            <div class="profile-level">👑 Lv.1 Newbie</div>
           </div>
         </div>
         <div style="background: rgba(255,127,0,0.1); border: 1px solid var(--acc); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--acc);">
-          বিশ্বাস <span id="profBalanceTop">0</span> >
+          Trust <span id="profBalanceTop">0</span> >
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title" style="font-size: 15px;">💼 আমার ওয়ালেট</div>
-      <div class="wallet-balance" id="profWalletBalance">0 <span>USDT</span></div>
-      <button class="btn" onclick="switchPage('wallet', document.querySelector('.nav-item:nth-child(4)'))">⬇️ উত্তোলন</button>
+      <div class="card-title" style="font-size: 15px;">💼 My Wallet</div>
+      <div class="wallet-balance" id="profWalletBalance">$0.00</div>
+      <button class="btn" onclick="switchPage('wallet', document.querySelector('.nav-item:nth-child(4)'))">⬇️ Withdraw</button>
     </div>
 
     <div class="card">
-      <div class="card-title" style="font-size: 15px;">🔔 নোটিফিকেশন</div>
+      <div class="card-title" style="font-size: 15px;">🔔 Notifications</div>
       <div id="notifyList" style="display: flex; flex-direction: column; gap: 8px;"></div>
     </div>
   </section>
 
-  <!-- WALLET PAGE (Hidden in nav, accessed via profile) -->
+  <!-- WALLET PAGE -->
   <section id="page-wallet" class="page">
-    <h2 style="font-size: 24px; margin: 0 0 16px 0;">উত্তোলন (Withdraw)</h2>
+    <h2 style="font-size: 24px; margin: 0 0 16px 0;">Withdraw</h2>
     <div class="card">
       <p style="font-size: 13px; color: var(--warn); margin-top: 0;" id="wdRuleText"></p>
-      <label>পরিমাণ (সর্বনিম্ন: <span id="minW">100</span>)</label>
-      <input type="number" id="wdAmount" placeholder="পরিমাণ লিখুন" />
+      <label>Amount (Min: <span id="minW">100</span>)</label>
+      <input type="number" id="wdAmount" placeholder="Enter amount" />
       
-      <label>পেমেন্ট মেথড</label>
+      <label>Payment Method</label>
       <select id="wdMethod"></select>
       
-      <label>অ্যাকাউন্ট নম্বর</label>
-      <input type="text" id="wdAccount" placeholder="বিকাশ/নগদ নম্বর" />
+      <label>Account Number</label>
+      <input type="text" id="wdAccount" placeholder="bKash/Nagad Number" />
       
-      <button class="btn" onclick="requestWithdraw()">রিকোয়েস্ট পাঠান</button>
+      <button class="btn" onclick="requestWithdraw()">Request Withdraw</button>
     </div>
     
-    <h3 class="card-title">হিস্টোরি</h3>
+    <h3 class="card-title">History</h3>
     <div id="historyList"></div>
   </section>
 </main>
@@ -156,51 +167,63 @@
 <nav class="bottom-nav" id="app-nav" style="display:none;">
   <div class="nav-item active" onclick="switchPage('home', this)">
     <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    হোম
+    Home
   </div>
   <div class="nav-item" onclick="switchPage('tasks', this)">
     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-    টাস্ক
+    Tasks
   </div>
   <div class="nav-item" onclick="switchPage('rank', this)">
     <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2z"/></svg>
-    র‍্যাংক
+    Rank
   </div>
   <div class="nav-item" onclick="switchPage('refer', this)">
     <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-    ক্যাম্পেইন
+    Refer
   </div>
   <div class="nav-item" onclick="switchPage('profile', this)">
     <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-    প্রোফাইল
+    Profile
   </div>
 </nav>
 
 <!-- MODALS -->
+<!-- Task Modal with Image Upload -->
 <div class="modal" id="taskModal">
   <div class="modal-content">
     <h3 id="tmTitle" style="margin-top:0; font-size: 20px;">Task Title</h3>
     <div id="tmInst" style="font-size:14px; color:var(--mut); white-space: pre-wrap; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--line); margin-bottom: 16px; max-height: 150px; overflow-y: auto;"></div>
+    
     <div id="tmLinkWrap" style="margin-bottom:16px;"></div>
+    
     <div id="tmProofWrap">
-      <label>প্রুফ সাবমিট করুন (লিংক বা কোড)</label>
-      <input type="text" id="tmProof" placeholder="https://... বা কোড" />
+      <label>Upload Screenshot or Enter Code</label>
+      
+      <!-- Image Upload Box -->
+      <div style="border: 2px dashed var(--line); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 12px; cursor: pointer;" onclick="document.getElementById('tmImage').click()">
+        <input type="file" id="tmImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)" />
+        <div id="uploadPreview" style="color: var(--mut); font-size: 13px;">📸 Click to upload screenshot</div>
+      </div>
+
+      <!-- Or Text Input -->
+      <input type="text" id="tmProof" placeholder="Enter Code/Link here (optional)" style="margin-bottom:12px;" />
     </div>
-    <button class="btn" onclick="submitTask()">সাবমিট করুন</button>
-    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('taskModal')">বাতিল</button>
+    
+    <button class="btn" onclick="submitTask()">Submit Task</button>
+    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('taskModal')">Cancel</button>
   </div>
 </div>
 
+<!-- Ad Modal -->
 <div class="modal" id="adModal">
   <div class="modal-content" style="text-align:center;">
-    <h3 style="margin-top:0; font-size: 20px;">অ্যাড দেখছেন</h3>
+    <h3 style="margin-top:0; font-size: 20px;">Watching Ad</h3>
     <div class="ad-timer" id="adTimer">20s</div>
-    <p style="font-size:12px; color:var(--mut);" id="adUrlText">অপেক্ষা করুন...</p>
-    <button class="btn" id="adClaimBtn" style="display:none;" onclick="claimAd()">রিওয়ার্ড নিন</button>
-    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('adModal')">বন্ধ করুন</button>
+    <p style="font-size:12px; color:var(--mut);" id="adUrlText">Please wait...</p>
+    <button class="btn" id="adClaimBtn" style="display:none;" onclick="claimAd()">Claim Reward</button>
+    <button class="btn ghost" style="margin-top:8px;" onclick="closeModal('adModal')">Close</button>
   </div>
 </div>
-
 <!-- এখানে JS ফাইল লিংক করা হলো -->
 <script src="app.js"></script>
 </body>
