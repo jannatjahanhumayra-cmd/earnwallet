@@ -1276,3 +1276,348 @@ label {
     font-size: 36px;
   }
 }
+
+
+/* ========== ADS PAGE ========== */
+
+/* Daily Task Card */
+.daily-task-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+.daily-task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.daily-task-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.daily-task-icon {
+  font-size: 22px;
+}
+
+.daily-task-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--txt);
+}
+
+.daily-task-subtitle {
+  font-size: 11px;
+  color: var(--txt-muted);
+  margin-top: 1px;
+}
+
+.daily-task-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.daily-task-coin {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--warn);
+}
+
+.daily-task-check {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  color: var(--ok);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.daily-task-progress-bar {
+  height: 5px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.daily-task-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--acc), var(--acc-light));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Featured Ad Card */
+.featured-ad-card {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.featured-ad-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(255,107,53,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.featured-ad-badge {
+  display: inline-block;
+  background: rgba(255, 107, 53, 0.15);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  color: var(--acc);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.featured-ad-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--txt);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.featured-ad-prize {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.featured-ad-amount {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--acc);
+  line-height: 1;
+}
+
+.featured-ad-unit {
+  font-size: 13px;
+  color: var(--txt-secondary);
+  font-weight: 600;
+}
+
+.featured-ad-desc {
+  font-size: 12px;
+  color: var(--txt-muted);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.featured-ad-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.featured-ad-time {
+  font-size: 11px;
+  color: var(--txt-muted);
+}
+
+.featured-ad-btn {
+  width: auto !important;
+  padding: 8px 20px !important;
+  font-size: 12px !important;
+}
+
+.featured-ad-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.featured-ad-dots .dot {
+  width: 20px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  transition: all 0.3s;
+}
+
+.featured-ad-dots .dot.active {
+  background: var(--acc);
+  width: 30px;
+}
+
+/* Ad Categories */
+.ad-cat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ad-cat-item {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ad-cat-item:hover {
+  border-color: var(--acc);
+  background: rgba(255,107,53,0.04);
+}
+
+.ad-cat-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.ad-cat-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt);
+  margin-bottom: 3px;
+}
+
+.ad-cat-time,
+.ad-cat-count {
+  font-size: 10px;
+  color: var(--txt-muted);
+}
+
+/* Ad List Items (for Ads page) */
+.ad-list-item {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--shadow);
+}
+
+.ad-list-item .left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ad-list-item img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.ad-list-item .title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.ad-list-item .subtitle {
+  font-size: 11px;
+  color: var(--txt-muted);
+}
+
+.ad-list-item .reward-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.ad-list-item .reward-coin {
+  color: var(--warn);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.ad-list-item .reward-usdt {
+  color: var(--ok);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.ad-list-item .progress-mini {
+  width: 40px;
+  height: 4px;
+  background: var(--bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ad-list-item .progress-mini-fill {
+  height: 100%;
+  background: var(--acc);
+  border-radius: 2px;
+}
+
+.ad-list-item .ad-id {
+  font-size: 10px;
+  color: var(--txt-muted);
+}
+
+.ad-list-item .right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.ad-list-item .watch-btn {
+  background: linear-gradient(90deg, var(--acc), var(--acc-light));
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--acc-glow);
+}
+
+.ad-list-item .watch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
