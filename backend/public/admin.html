@@ -57,6 +57,7 @@
       <a onclick="showTab('live')">Live Withdrawals</a>
       <a onclick="showTab('notify')">Notifications</a>
       <a onclick="showTab('settings')">Settings</a>
+      <a onclick="showTab('payment')">Payment Settings</a>
     </div>
   </div>
 </header>
@@ -80,7 +81,6 @@
           <tbody id="usersBody"></tbody>
         </table></div>
       </div>
-      <!-- User Details Modal -->
       <div id="userModal" class="panel hide" style="border-color:var(--acc)">
         <h2 id="modalTitle">User Details</h2>
         <div id="modalBody" class="muted" style="line-height:1.6; margin-bottom:10px"></div>
@@ -98,10 +98,7 @@
       <div class="panel">
         <h2>Create Task</h2>
         <label>Task Title</label><input id="taskTitle" />
-        
-        <label>Rules / Instructions (নিয়ম-কানুন)</label>
-        <textarea id="taskInst" rows="4" placeholder="Write details rules for users..."></textarea>
-        
+        <label>Rules / Instructions</label><textarea id="taskInst" rows="4" placeholder="Write details rules for users..."></textarea>
         <label>Work Link</label><input id="taskUrl" placeholder="https://..." />
         <label>Logo Link</label><input id="taskLogo" placeholder="https://..." />
         <div class="row">
@@ -132,16 +129,7 @@
         </div>
         <div class="scroll-lg">
           <table>
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Task Title</th>
-                <th>Proof</th>
-                <th>Reward</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
+            <thead><tr><th>User</th><th>Task Title</th><th>Proof</th><th>Reward</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="proofsBody"></tbody>
           </table>
         </div>
@@ -178,30 +166,20 @@
         </div>
         <div class="scroll-lg">
           <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>User Details</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Account</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Date</th><th>User Details</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="wdBody"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- LIVE WITHDRAWALS (Fake Feed) -->
+    <!-- LIVE WITHDRAWALS -->
     <section data-tab="live" class="hide">
       <div class="panel">
         <h2>Add Fake Live Withdrawal</h2>
         <label>User Name</label><input id="lwName" placeholder="e.g. Rahim" />
         <label>Amount ($)</label><input id="lwAmount" type="number" />
-        <label>Method</label><select id="lwMethod"><option>bKash</option><option>Nagad</option><option>USDT</option></select>
+        <label>Method</label><select id="lwMethod"><option>bKash</option><option>Nagad</option><option>USDT</option><option>LTC</option><option>ETH</option></select>
         <button class="btn" onclick="addLive()">Publish to User App</button>
         <div class="msg" id="lwMsg"></div>
       </div>
@@ -231,7 +209,18 @@
     <section data-tab="settings" class="hide">
       <div class="panel">
         <h2>App Settings</h2>
+        <label>App Name</label>
+        <input type="text" id="setAppName" value="EarnWallet" />
         
+        <label>Support URL</label>
+        <input type="text" id="setSupportUrl" placeholder="https://t.me/YourSupport" />
+
+        <label>Channel 1 (Link)</label>
+        <input type="text" id="setChannel1" placeholder="https://t.me/YourChannel" />
+        
+        <label>Channel 2 (Link)</label>
+        <input type="text" id="setChannel2" placeholder="https://t.me/YourChannel2" />
+
         <label>Minimum Withdraw Amount</label>
         <input type="number" id="minWithdraw" value="100" />
         
@@ -248,13 +237,24 @@
         <div class="msg" id="setMsg"></div>
       </div>
     </section>
+
+    <!-- PAYMENT SETTINGS -->
+    <section data-tab="payment" class="hide">
+      <div class="panel">
+        <h2>Payment Methods</h2>
+        <div id="paymentBoxes" class="grid"></div>
+        <button class="btn" style="margin-top:12px" onclick="savePayments()">Save Payments</button>
+        <div class="msg" id="payMsg"></div>
+      </div>
+    </section>
+
   </div>
 </main>
 
 <script>
 const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
 const INIT = tg?.initData || '';
-let state = { users:[], ads:[], tasks:[], withdrawals:[], live:[], notifications:[], settings:{} };
+let state = { users:[], ads:[], tasks:[], withdrawals:[], live:[], notifications:[], settings:{}, payments:{} };
 let selectedUserId = null;
 
 function el(id){ return document.getElementById(id); }
@@ -282,7 +282,7 @@ async function boot(){
 }
 
 async function loadAll(){
-  await Promise.allSettled([loadStats(), loadUsers(), loadAds(), loadTasks(), loadWithdrawals(), loadLive(), loadNotify(), loadSettings()]);
+  await Promise.allSettled([loadStats(), loadUsers(), loadAds(), loadTasks(), loadWithdrawals(), loadLive(), loadNotify(), loadSettings(), loadPayments()]);
 }
 
 // --- DASHBOARD ---
@@ -317,13 +317,7 @@ function openUser(id){
   if(!u) return alert('User data not found');
   selectedUserId = id;
   el('modalTitle').textContent = (u.firstName || 'User') + "'s Profile";
-  el('modalBody').innerHTML = `
-    <strong>ID:</strong> ${h(u.id)}<br>
-    <strong>Balance:</strong> ${h(u.balance)}<br>
-    <strong>Total Earned:</strong> ${h(u.totalEarnings)}<br>
-    <strong>Completed Tasks:</strong> ${h(u.completedTasks || 0)}<br>
-    <strong>Status:</strong> ${h(u.status)}
-  `;
+  el('modalBody').innerHTML = `<strong>ID:</strong> ${h(u.id)}<br><strong>Balance:</strong> ${h(u.balance)}<br><strong>Total Earned:</strong> ${h(u.totalEarnings)}<br><strong>Completed Tasks:</strong> ${h(u.completedTasks || 0)}<br><strong>Status:</strong> ${h(u.status)}`;
   el('userModal').classList.remove('hide');
 }
 function closeModal(){ el('userModal').classList.add('hide'); selectedUserId = null; }
@@ -336,27 +330,18 @@ async function toggleBan(id, status){
 async function updateBalance(){
   const amount = Number(el('modalBalance').value);
   if(!amount || isNaN(amount)) return setMsg('modalMsg', 'Enter a valid amount', false);
-
   try {
-    await api('/api/admin/update-balance', { 
-      method: 'POST', 
-      body: JSON.stringify({ telegramId: selectedUserId, amount }) 
-    });
+    await api('/api/admin/update-balance', { method: 'POST', body: JSON.stringify({ telegramId: selectedUserId, amount }) });
     setMsg('modalMsg', 'Balance updated!', true);
     el('modalBalance').value = '';
-    await loadUsers(); // লিস্ট রিফ্রেশ
-    openUser(selectedUserId); // পপআপ রিফ্রেশ
-  } catch(e) {
-    setMsg('modalMsg', e.message, false);
-  }
+    await loadUsers(); openUser(selectedUserId);
+  } catch(e) { setMsg('modalMsg', e.message, false); }
 }
 
 // --- TASKS ---
 async function loadTasks(){
   try {
-    const { data } = await api('/api/admin/tasks'); 
-    state.tasks = data || [];
-    
+    const { data } = await api('/api/admin/tasks'); state.tasks = data || [];
     el('tasksBody').innerHTML = state.tasks.map(t => {
       const isActive = t.status === 'active';
       return `<tr>
@@ -375,70 +360,32 @@ async function loadTasks(){
 
 async function createTask(){
   try {
-    const title = el('taskTitle').value;
-    const instruction = el('taskInst').value;
-    const url = el('taskUrl').value;
-    const logoUrl = el('taskLogo').value;
-    const reward = Number(el('taskReward').value);
-    const requiresProof = el('taskProof').value === 'true';
-
+    const title = el('taskTitle').value; const instruction = el('taskInst').value;
+    const url = el('taskUrl').value; const logoUrl = el('taskLogo').value;
+    const reward = Number(el('taskReward').value); const requiresProof = el('taskProof').value === 'true';
     if(!title || isNaN(reward)) return alert('Title and Reward required');
 
-    await api('/api/admin/tasks', { method:'POST', body: JSON.stringify({
-      title, instruction, url, logoUrl, reward, requiresProof
-    })});
-    
+    await api('/api/admin/tasks', { method:'POST', body: JSON.stringify({ title, instruction, url, logoUrl, reward, requiresProof })});
     setMsg('taskMsg', 'Task created successfully', true); 
-    
-    el('taskTitle').value = '';
-    el('taskInst').value = '';
-    el('taskUrl').value = '';
-    el('taskLogo').value = '';
-    el('taskReward').value = '0';
-    
+    el('taskTitle').value = ''; el('taskInst').value = ''; el('taskUrl').value = ''; el('taskLogo').value = ''; el('taskReward').value = '0';
     loadTasks();
   } catch(e){ setMsg('taskMsg', e.message, false); }
 }
 
-async function delTask(id){ 
-  if(confirm('Are you sure you want to delete this task?')) { 
-    await api('/api/admin/tasks/'+id, {method:'DELETE'}); 
-    loadTasks(); 
-  } 
-}
-
-async function toggleTask(id, status) {
-  try {
-    await api('/api/admin/tasks/'+id, { method:'PATCH', body: JSON.stringify({ status })});
-    loadTasks();
-  } catch(e) { alert(e.message); }
-}
+async function delTask(id){ if(confirm('Delete this task?')) { await api('/api/admin/tasks/'+id, {method:'DELETE'}); loadTasks(); } }
+async function toggleTask(id, status) { try { await api('/api/admin/tasks/'+id, { method:'PATCH', body: JSON.stringify({ status })}); loadTasks(); } catch(e) { alert(e.message); } }
 
 function openEditTask(id) {
   const t = state.tasks.find(x => x.id === id);
   if(!t) return;
-  
-  const newTitle = prompt("Edit Task Title:", t.title);
-  if(newTitle === null) return;
-  
-  const newInst = prompt("Edit Rules/Instructions:", t.instruction || '');
-  if(newInst === null) return;
-  
-  const newReward = prompt("Edit Reward:", t.reward);
-  if(newReward === null) return;
-
+  const newTitle = prompt("Edit Task Title:", t.title); if(newTitle === null) return;
+  const newInst = prompt("Edit Rules/Instructions:", t.instruction || ''); if(newInst === null) return;
+  const newReward = prompt("Edit Reward:", t.reward); if(newReward === null) return;
   editTaskSave(id, newTitle, newInst, Number(newReward));
 }
 
 async function editTaskSave(id, title, instruction, reward) {
-  try {
-    await api('/api/admin/tasks/'+id, {
-      method:'PATCH',
-      body: JSON.stringify({ title, instruction, reward })
-    });
-    alert('Task updated!');
-    loadTasks();
-  } catch(e) { alert(e.message); }
+  try { await api('/api/admin/tasks/'+id, { method:'PATCH', body: JSON.stringify({ title, instruction, reward }) }); alert('Task updated!'); loadTasks(); } catch(e) { alert(e.message); }
 }
 
 // --- TASK PROOFS (SUBMISSIONS) ---
@@ -446,61 +393,31 @@ async function loadProofs(statusFilter = 'pending') {
   try {
     const url = statusFilter ? `/api/admin/task-submissions?status=${statusFilter}` : '/api/admin/task-submissions';
     const { data } = await api(url);
-    
     el('proofsBody').innerHTML = data.map(s => {
       const statusClass = s.status === 'approved' ? 'approved' : s.status === 'rejected' ? 'rejected' : 'pending';
-      
       let proofDisplay = '';
       const proofStr = String(s.proof || '').trim();
-      
       if (proofStr.match(/^https?:\/\/.*\.(jpeg|jpg|gif|png|webp)/i) || proofStr.startsWith('data:image/')) {
-        proofDisplay = `<a href="${h(proofStr)}" target="_blank">
-          <img src="${h(proofStr)}" style="max-width:80px; max-height:80px; border-radius:4px; border:1px solid var(--line); object-fit:cover;" alt="Proof" />
-        </a>`;
+        proofDisplay = `<a href="${h(proofStr)}" target="_blank"><img src="${h(proofStr)}" style="max-width:80px; max-height:80px; border-radius:4px; border:1px solid var(--line); object-fit:cover;" alt="Proof" /></a>`;
       } else if (proofStr.length > 0) {
-        proofDisplay = `<div style="max-width: 180px; max-height: 60px; overflow-y: auto; background: #0d1322; padding: 4px; border-radius: 4px; font-size: 11px; word-break: break-all; border: 1px solid var(--line);" title="${h(proofStr)}">
-          ${h(proofStr)}
-        </div>`;
-      } else {
-        proofDisplay = '<span class="muted">No proof provided</span>';
-      }
+        proofDisplay = `<div style="max-width: 180px; max-height: 60px; overflow-y: auto; background: #0d1322; padding: 4px; border-radius: 4px; font-size: 11px; word-break: break-all; border: 1px solid var(--line);" title="${h(proofStr)}">${h(proofStr)}</div>`;
+      } else { proofDisplay = '<span class="muted">No proof provided</span>'; }
 
       return `<tr>
-        <td>
-          <strong>${h(s.userName)}</strong><br>
-          <span class="muted">ID: ${h(s.userTelegramId)}</span>
-        </td>
+        <td><strong>${h(s.userName)}</strong><br><span class="muted">ID: ${h(s.userTelegramId)}</span></td>
         <td>${h(s.taskTitle)}</td>
         <td>${proofDisplay}</td>
         <td>${h(s.taskReward)}</td>
         <td><span class="tag ${statusClass}">${h(s.status)}</span></td>
-        <td>
-          ${s.status === 'pending' ? `
-            <button class="btn sm ok" onclick="processProof('${h(s.id)}','approved')">Approve</button>
-            <button class="btn sm bad" onclick="processProof('${h(s.id)}','rejected')">Reject</button>
-          ` : '—'}
-        </td>
+        <td>${s.status === 'pending' ? `<button class="btn sm ok" onclick="processProof('${h(s.id)}','approved')">Approve</button><button class="btn sm bad" onclick="processProof('${h(s.id)}','rejected')">Reject</button>` : '—'}</td>
       </tr>`;
     }).join('') || '<tr><td colspan="6" class="muted">No proofs found</td></tr>';
-  } catch (e) {
-    alert('Error loading proofs: ' + e.message);
-  }
+  } catch (e) { alert('Error loading proofs: ' + e.message); }
 }
 
 async function processProof(id, status) {
-  const action = status === 'approved' ? 'Approve' : 'Reject';
-  if (!confirm(`Are you sure you want to ${action} this task proof?`)) return;
-  
-  try {
-    await api('/api/admin/task-submissions/' + id, {
-      method: 'POST',
-      body: JSON.stringify({ status })
-    });
-    alert(`Proof ${status} successfully!`);
-    loadProofs('pending'); 
-  } catch (e) {
-    alert(e.message);
-  }
+  if (!confirm(`Are you sure you want to ${status === 'approved' ? 'Approve' : 'Reject'} this task proof?`)) return;
+  try { await api('/api/admin/task-submissions/' + id, { method: 'POST', body: JSON.stringify({ status }) }); alert(`Proof ${status}!`); loadProofs('pending'); } catch (e) { alert(e.message); }
 }
 
 // --- ADS ---
@@ -510,10 +427,7 @@ async function loadAds(){
 }
 async function createAd(){
   try {
-    await api('/api/admin/ads', { method:'POST', body: JSON.stringify({
-      title: el('adTitle').value, url: el('adUrl').value, bannerUrl: el('adBanner').value,
-      reward: Number(el('adReward').value), duration: Number(el('adDuration').value)
-    })});
+    await api('/api/admin/ads', { method:'POST', body: JSON.stringify({ title: el('adTitle').value, url: el('adUrl').value, bannerUrl: el('adBanner').value, reward: Number(el('adReward').value), duration: Number(el('adDuration').value) })});
     setMsg('adMsg', 'Ad created', true); loadAds();
   } catch(e){ setMsg('adMsg', e.message, false); }
 }
@@ -524,52 +438,29 @@ async function loadWithdrawals(){
   try {
     const { data } = await api('/api/admin/withdrawals'); 
     let list = data || [];
-
-    // ডেট ফিল্টার
     const filterDate = el('wdDateFilter')?.value;
-    if (filterDate) {
-      list = list.filter(w => w.createdAt && w.createdAt.startsWith(filterDate));
-    }
+    if (filterDate) list = list.filter(w => w.createdAt && w.createdAt.startsWith(filterDate));
 
     el('wdBody').innerHTML = list.map(w => {
       const dateStr = w.createdAt ? new Date(w.createdAt).toLocaleString() : '-';
-      
-      // ইউজারের নাম খোঁজা (যদি state.users এ থাকে)
       const user = state.users.find(u => String(u.id) === String(w.telegramId));
       const userName = user ? `${user.firstName} ${user.lastName || ''}` : 'Unknown User';
-
       return `<tr>
         <td style="font-size:11px;">${h(dateStr)}</td>
-        <td onclick="openUser('${h(w.telegramId)}')" style="cursor:pointer; color:var(--acc);">
-          <strong>${h(userName)}</strong><br>
-          <span class="muted">ID: ${h(w.telegramId)}</span>
-        </td>
+        <td onclick="openUser('${h(w.telegramId)}')" style="cursor:pointer; color:var(--acc);"><strong>${h(userName)}</strong><br><span class="muted">ID: ${h(w.telegramId)}</span></td>
         <td style="font-weight:bold; color:var(--ok);">${h(w.amount)}</td>
         <td>${h(w.method)}</td>
         <td style="font-size:12px;">${h(w.account)}</td>
         <td><span class="tag ${h(w.status)}">${h(w.status)}</span></td>
-        <td>
-          ${w.status === 'pending' ? `
-            <button class="btn sm ok" onclick="processWd('${h(w.id)}','approved')">Accept</button>
-            <button class="btn sm bad" onclick="processWd('${h(w.id)}','rejected')">Reject</button>
-          ` : '—'}
-        </td>
+        <td>${w.status === 'pending' ? `<button class="btn sm ok" onclick="processWd('${h(w.id)}','approved')">Accept</button><button class="btn sm bad" onclick="processWd('${h(w.id)}','rejected')">Reject</button>` : '—'}</td>
       </tr>`;
     }).join('') || '<tr><td colspan="7" class="muted">No withdrawals found</td></tr>';
-  } catch(e) {
-    alert('Error loading withdrawals');
-  }
+  } catch(e) { alert('Error loading withdrawals'); }
 }
 
 async function processWd(id, status){ 
-  const action = status === 'approved' ? 'Accept' : 'Reject & Refund';
-  if(!confirm(`Are you sure you want to ${action} this withdrawal?`)) return;
-
-  try {
-    await api('/api/admin/withdrawals/'+id, {method:'POST', body: JSON.stringify({status})}); 
-    loadWithdrawals(); 
-    loadStats(); 
-  } catch(e) { alert(e.message); }
+  if(!confirm(`Are you sure you want to ${status === 'approved' ? 'Accept' : 'Reject & Refund'} this withdrawal?`)) return;
+  try { await api('/api/admin/withdrawals/'+id, {method:'POST', body: JSON.stringify({status})}); loadWithdrawals(); loadStats(); } catch(e) { alert(e.message); }
 }
 
 // --- LIVE WITHDRAW ---
@@ -597,23 +488,58 @@ async function sendNotify(){
   } catch(e){ setMsg('notifyResult', e.message, false); }
 }
 
-// --- SETTINGS ---
+// --- SETTINGS & PAYMENTS ---
 async function loadSettings(){
   const { data } = await api('/api/admin/settings'); 
   state.settings = data || {};
   el('setMaintenance').value = data.maintenance ? 'true' : 'false';
-  if (el('minWithdraw')) el('minWithdraw').value = data.minWithdraw || 100;
-  if (el('setRequiredRef')) el('setRequiredRef').value = data.requiredReferrals !== undefined ? data.requiredReferrals : 10;
+  el('minWithdraw').value = data.minWithdraw || 100;
+  el('setRequiredRef').value = data.requiredReferrals !== undefined ? data.requiredReferrals : 10;
+  el('setAppName').value = data.appName || 'EarnWallet';
+  el('setSupportUrl').value = data.supportUrl || '';
+  
+  if(data.channels && data.channels.length > 0) {
+    el('setChannel1').value = data.channels[0] || '';
+    el('setChannel2').value = data.channels[1] || '';
+  }
 }
 
 async function saveSettings(){
   const body = { 
     maintenance: el('setMaintenance').value === 'true',
     minWithdraw: Number(el('minWithdraw').value),
-    requiredReferrals: Number(el('setRequiredRef').value)
+    requiredReferrals: Number(el('setRequiredRef').value),
+    appName: el('setAppName').value,
+    supportUrl: el('setSupportUrl').value,
+    channels: [el('setChannel1').value.trim(), el('setChannel2').value.trim()].filter(c => c)
   };
   await api('/api/admin/settings', { method:'PUT', body: JSON.stringify(body) });
   setMsg('setMsg', 'Settings Saved', true);
+}
+
+async function loadPayments(){
+  const { data } = await api('/api/admin/payment-settings');
+  state.payments = data;
+  el('paymentBoxes').innerHTML = ['bKash', 'Nagad', 'USDT', 'LTC', 'ETH'].map(k => {
+    const p = data[k] || { enabled: false };
+    return `<div class="card">
+      <strong>${k}</strong>
+      <label>Status</label>
+      <select id="pay-enabled-${k}">
+        <option value="false" ${!p.enabled ? 'selected' : ''}>Off</option>
+        <option value="true" ${p.enabled ? 'selected' : ''}>On</option>
+      </select>
+    </div>`;
+  }).join('');
+}
+
+async function savePayments(){
+  const body = {};
+  for (const k of ['bKash','Nagad','USDT','LTC','ETH']) {
+    body[k] = { enabled: el('pay-enabled-'+k).value === 'true' };
+  }
+  await api('/api/admin/payment-settings', { method:'PUT', body: JSON.stringify(body) });
+  setMsg('payMsg', 'Payment settings saved', true);
 }
 
 boot();
