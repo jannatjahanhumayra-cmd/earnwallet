@@ -10,19 +10,30 @@
 </head>
 <body>
 
-<!-- Channel Join Gate -->
-<div id="channelGate" style="position:fixed; inset:0; background:#0b0f19; z-index:1000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;">
-  <h2 style="color:var(--acc); font-size: 22px; margin-bottom: 8px;">Join Our Channels</h2>
-  <p style="color:var(--mut); font-size: 13px; margin-bottom: 20px;">You must join our official channels to use the app.</p>
-  
-  <a href="#" id="gateChannel1" target="_blank" class="btn" style="text-decoration:none; margin-bottom:8px;">Join Official Channel</a>
-  <a href="#" id="gateChannel2" target="_blank" class="btn ghost" style="text-decoration:none; margin-bottom:12px;">Join Backup Channel</a>
-  
-  <button class="btn" id="verifyBtn" style="background:var(--ok); box-shadow: 0 4px 15px rgba(46,204,113,0.4);" onclick="verifyChannel()">I have joined, Verify</button>
-  <p id="verifyMsg" style="font-size:12px; margin-top:10px;"></p>
+<!-- Premium Loader -->
+<div id="loader">
+  <div class="loader-wrap">
+    <div class="loader-ring">
+      <div></div><div></div><div></div><div></div>
+    </div>
+    <div class="loader-text">EarnWallet</div>
+    <div class="loader-sub">Premium Edition</div>
+    <div class="loader-bar"><div class="loader-progress"></div></div>
+  </div>
 </div>
 
-<div id="loader">Loading EarnWallet...</div>
+<!-- Channel Join Gate -->
+<div id="channelGate" style="position:fixed; inset:0; background:#0b0f19; z-index:1000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;">
+  <div class="gate-icon">📢</div>
+  <h2 class="gate-title">Join Our Channels</h2>
+  <p class="gate-desc">You must join our official channels to use the app.</p>
+
+  <a href="#" id="gateChannel1" target="_blank" class="btn gate-btn" style="text-decoration:none;">Join Official Channel</a>
+  <a href="#" id="gateChannel2" target="_blank" class="btn ghost gate-btn" style="text-decoration:none;">Join Backup Channel</a>
+
+  <button class="btn verify-btn" id="verifyBtn" onclick="verifyChannel()">I have joined, Verify</button>
+  <p id="verifyMsg" class="verify-msg"></p>
+</div>
 
 <header id="app-header" style="display:none;">
   <div class="user-info">
@@ -38,37 +49,34 @@
 <main id="app-main" style="display:none;">
   <!-- HOME PAGE -->
   <section id="page-home" class="page active">
-    
+
     <!-- Notification Marquee -->
     <div class="notice-box" onclick="openNotificationsModal()">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:16px;">📢</span>
-      </div>
+      <span class="notice-icon">📢</span>
       <div class="notice-marquee">
         <span id="noticeMarquee">Loading notices...</span>
       </div>
-      <div style="color:var(--mut); font-size:16px;">›</div>
+      <span class="notice-arrow">›</span>
     </div>
 
-    <!-- Scrolling Banner (Ad Placements Top) -->
+    <!-- Scrolling Banner -->
     <div class="scroll-banner-wrapper">
       <div class="scroll-banner" id="scrollBanner">
-        <!-- Dynamic Banner Here -->
         <div class="banner-item">Welcome to EarnWallet! Start earning now.</div>
       </div>
     </div>
 
-    <div class="card" style="background: linear-gradient(145deg, #141a29, #0b0f19); border-color: var(--acc);">
-      <div style="font-size: 12px; color: var(--mut);">Your Total Balance</div>
+    <div class="card balance-card">
+      <div class="balance-label">Your Total Balance</div>
       <div class="wallet-balance" id="homeBalance">$0.00</div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
-        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
-          <div style="font-size: 10px; color: var(--mut);">Today's Earn</div>
-          <div style="font-size: 14px; font-weight: 700; color: var(--ok); margin-top: 2px;" id="todayEarn">$0.00</div>
+      <div class="balance-grid">
+        <div class="balance-box">
+          <div class="balance-box-label">Today's Earn</div>
+          <div class="balance-box-value ok" id="todayEarn">$0.00</div>
         </div>
-        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; text-align: center;">
-          <div style="font-size: 10px; color: var(--mut);">Total Earned</div>
-          <div style="font-size: 14px; font-weight: 700; color: var(--txt); margin-top: 2px;" id="totalEarn">$0.00</div>
+        <div class="balance-box">
+          <div class="balance-box-label">Total Earned</div>
+          <div class="balance-box-value" id="totalEarn">$0.00</div>
         </div>
       </div>
     </div>
@@ -97,17 +105,17 @@
 
   <!-- RANK PAGE (Leaderboard) -->
   <section id="page-rank" class="page">
-    <h2 style="font-size: 20px; margin: 0 0 12px 0;">Leaderboard (Top Withdrawers)</h2>
-    
+    <h2 class="page-title">Leaderboard (Top Withdrawers)</h2>
+
     <!-- Referral Card -->
-    <div class="card" style="background: linear-gradient(135deg, #ff7f00, #ff5500); color: #fff; text-align: center; margin-bottom: 16px;">
-      <h3 style="margin: 0 0 8px 0; font-size: 16px;">Invite Friends</h3>
-      <div style="display: flex; justify-content: space-around; margin-bottom: 12px;">
-        <div><div style="font-size: 10px; opacity: 0.8;">Commission</div><div style="font-size: 14px; font-weight: 700;">$0.00</div></div>
-        <div><div style="font-size: 10px; opacity: 0.8;">Invited</div><div style="font-size: 14px; font-weight: 700;" id="refTotalTop">0</div></div>
+    <div class="card refer-card">
+      <h3 class="refer-card-title">Invite Friends</h3>
+      <div class="refer-stats">
+        <div><div class="refer-stats-label">Commission</div><div class="refer-stats-value">$0.00</div></div>
+        <div><div class="refer-stats-label">Invited</div><div class="refer-stats-value" id="refTotalTop">0</div></div>
       </div>
-      <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; font-size: 11px; margin-bottom: 10px; word-break: break-all;" id="refLinkTop">...</div>
-      <button class="btn ghost" style="background: #fff; color: #ff5500; box-shadow: none;" onclick="copyRef()">🔗 Copy Link</button>
+      <div class="refer-link" id="refLinkTop">...</div>
+      <button class="btn ghost copy-btn" onclick="copyRef()">🔗 Copy Link</button>
     </div>
 
     <div id="leaderboardList"></div>
@@ -115,10 +123,10 @@
 
   <!-- CAMPAIGN (REFER) PAGE -->
   <section id="page-refer" class="page">
-    <h2 style="font-size: 20px; margin: 0 0 12px 0;">Campaign</h2>
+    <h2 class="page-title">Campaign</h2>
     <div class="card" style="text-align: center;">
-      <h3 style="margin: 0 0 6px 0; font-size: 16px;">Your Referral Link</h3>
-      <div style="background: var(--bg); padding: 10px; border-radius: 6px; border: 1px solid var(--line); margin-bottom: 10px; word-break: break-all; font-size: 12px;" id="refLink">...</div>
+      <h3 class="card-subtitle">Your Referral Link</h3>
+      <div class="refer-link-box" id="refLink">...</div>
       <button class="btn" onclick="copyRef()">Copy Link</button>
     </div>
     <h3 class="card-title">Your Referrals</h3>
@@ -127,48 +135,48 @@
 
   <!-- PROFILE PAGE -->
   <section id="page-profile" class="page">
-    <h2 style="font-size: 20px; margin: 0 0 12px 0;">Profile</h2>
-    
+    <h2 class="page-title">Profile</h2>
+
     <div class="card profile-card">
       <div class="profile-header">
-        <div style="display: flex; gap: 12px; align-items: center;">
+        <div class="profile-left">
           <img id="profPic" src="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=141a29&color=ff7f00'" />
           <div>
             <h3 class="profile-name" id="profName">User</h3>
             <div class="profile-level">👑 Lv.1 Newbie</div>
           </div>
         </div>
-        <div style="background: rgba(255,127,0,0.1); border: 1px solid var(--acc); padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; color: var(--acc);">
+        <div class="trust-badge">
           Trust <span id="profBalanceTop">0</span> >
         </div>
       </div>
     </div>
 
-    <!-- New Menu List -->
-    <div class="card" style="padding: 0; overflow: hidden;">
+    <!-- Menu List -->
+    <div class="card menu-card" style="padding: 0; overflow: hidden;">
       <div class="menu-item" onclick="switchPage('wallet', null)">
-        <span>💼 My Wallet & Withdraw</span> <span style="color:var(--mut);">›</span>
+        <span>💼 My Wallet & Withdraw</span> <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="openNotificationsModal()">
-        <span>🔔 Notifications</span> <span style="color:var(--mut);">›</span>
+        <span>🔔 Notifications</span> <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="window.open(state.config.channels?.[0] || 'https://t.me', '_blank')">
-        <span>📢 Official Channels</span> <span style="color:var(--mut);">›</span>
+        <span>📢 Official Channels</span> <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="window.open(state.config.supportUrl || 'https://t.me', '_blank')">
-        <span>🎧 Support</span> <span style="color:var(--mut);">›</span>
+        <span>🎧 Support</span> <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="alert('EarnWallet v1.0.0\nDeveloped by Admin')">
-        <span>ℹ️ About Us</span> <span style="color:var(--mut);">›</span>
+        <span>ℹ️ About Us</span> <span class="menu-arrow">›</span>
       </div>
     </div>
   </section>
 
   <!-- WALLET PAGE -->
   <section id="page-wallet" class="page">
-    <h2 style="font-size: 20px; margin: 0 0 12px 0;">Withdraw</h2>
+    <h2 class="page-title">Withdraw</h2>
     <div class="card">
-      <p style="font-size: 12px; color: var(--warn); margin-top: 0;" id="wdRuleText"></p>
+      <p class="wd-rule" id="wdRuleText"></p>
       <label>Amount (Min: <span id="minW">$1.00</span>)</label>
       <input type="number" id="wdAmount" placeholder="Enter amount in USD" />
       <label>Payment Method</label>
@@ -177,7 +185,7 @@
       <input type="text" id="wdAccount" placeholder="bKash/Nagad/TRC20/LTC/ETH" />
       <button class="btn" onclick="requestWithdraw()">Request Withdraw</button>
     </div>
-    <h3 class="card-title" style="font-size: 14px;">History</h3>
+    <h3 class="card-title" style="font-size: 13px;">History</h3>
     <div id="historyList"></div>
   </section>
 </main>
@@ -210,21 +218,21 @@
 <!-- Notifications Modal -->
 <div class="modal" id="notifyModal">
   <div class="modal-content">
-    <h3 style="margin-top:0; font-size:16px; display:flex; justify-content:space-between; align-items:center;">
+    <h3 class="modal-title">
       All Notifications
-      <span style="cursor:pointer; color:var(--mut); font-size:20px;" onclick="closeModal('notifyModal')">&times;</span>
+      <span class="modal-close" onclick="closeModal('notifyModal')">&times;</span>
     </h3>
-    <div id="modalNotifyList" style="display: flex; flex-direction: column; gap: 8px; margin-top:12px;"></div>
+    <div id="modalNotifyList" class="modal-list"></div>
   </div>
 </div>
 
 <!-- Task Modal with Image Upload -->
 <div class="modal" id="taskModal">
   <div class="modal-content">
-    <h3 id="tmTitle" style="margin-top:0; font-size: 16px;">Task Title</h3>
-    <div id="tmInst" style="font-size:12px; color:var(--mut); white-space: pre-wrap; background: var(--bg); padding: 10px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 12px; max-height: 120px; overflow-y: auto;"></div>
-    <div id="tmLinkWrap" style="margin-bottom:12px;"></div>
-    <div id="tmProofWrap">
+    <h3 id="tmTitle" class="modal-title-sm">Task Title</h3>
+    <div id="tmInst" class="task-inst"></div>
+    <div id="tmLinkWrap" class="task-link-wrap"></div>
+    <div id="tmProofWrap" class="task-proof-wrap">
       <label>Upload Screenshot or Enter Code</label>
       <div class="upload-box" onclick="document.getElementById('tmImage').click()">
         <input type="file" id="tmImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)" />
@@ -240,9 +248,9 @@
 <!-- Ad Modal -->
 <div class="modal" id="adModal">
   <div class="modal-content" style="text-align:center;">
-    <h3 style="margin-top:0; font-size: 16px;">Watching Ad</h3>
+    <h3 class="modal-title-sm">Watching Ad</h3>
     <div class="ad-timer" id="adTimer">20s</div>
-    <p style="font-size:11px; color:var(--mut);" id="adUrlText">Please wait...</p>
+    <p class="ad-url-text" id="adUrlText">Please wait...</p>
     <button class="btn" id="adClaimBtn" style="display:none;" onclick="claimAd()">Claim Reward</button>
     <button class="btn ghost" style="margin-top:6px;" onclick="closeModal('adModal')">Close</button>
   </div>
