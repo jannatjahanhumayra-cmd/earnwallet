@@ -23,22 +23,22 @@
 </div>
 
 <!-- Channel Join Gate -->
-<div id="channelGate" style="position:fixed; inset:0; background:#0b0f19; z-index:1000; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;">
+<div id="channelGate">
   <div class="gate-icon">📢</div>
   <h2 class="gate-title">Join Our Channels</h2>
   <p class="gate-desc">You must join our official channels to use the app.</p>
 
-  <a href="#" id="gateChannel1" target="_blank" class="btn gate-btn" style="text-decoration:none;">Join Official Channel</a>
-  <a href="#" id="gateChannel2" target="_blank" class="btn ghost gate-btn" style="text-decoration:none;">Join Backup Channel</a>
+  <a href="#" id="gateChannel1" target="_blank" class="btn gate-btn">Join Official Channel</a>
+  <a href="#" id="gateChannel2" target="_blank" class="btn ghost gate-btn">Join Backup Channel</a>
 
   <button class="btn verify-btn" id="verifyBtn" onclick="verifyChannel()">I have joined, Verify</button>
   <p id="verifyMsg" class="verify-msg"></p>
 </div>
 
 <header id="app-header" style="display:none;">
-  <div class="user-info">
+  <div class="header-left">
     <img id="userPic" src="" alt="User" onerror="this.src='https://ui-avatars.com/api/?name=U&background=141a29&color=ff7f00'" />
-    <div>
+    <div class="header-info">
       <div class="name" id="userName">User</div>
       <div class="id" id="headerId">ID: 0</div>
     </div>
@@ -47,6 +47,7 @@
 </header>
 
 <main id="app-main" style="display:none;">
+
   <!-- HOME PAGE -->
   <section id="page-home" class="page active">
 
@@ -66,7 +67,8 @@
       </div>
     </div>
 
-    <div class="card balance-card">
+    <!-- Balance Card -->
+    <div class="balance-card">
       <div class="balance-label">Your Total Balance</div>
       <div class="wallet-balance" id="homeBalance">$0.00</div>
       <div class="balance-grid">
@@ -81,6 +83,7 @@
       </div>
     </div>
 
+    <!-- Live Feed -->
     <div class="live-feed-wrapper">
       <div class="live-feed" id="liveFeed">
         <div class="live-item">Loading...</div>
@@ -92,6 +95,7 @@
   <section id="page-tasks" class="page">
     <div class="search-bar">
       <input type="text" id="taskSearch" placeholder="Search tasks..." oninput="loadTasks()" />
+      <button class="search-btn" onclick="loadTasks()">🔍</button>
     </div>
     <div class="tabs-scroll">
       <div class="tab-btn active" onclick="switchTaskTab('all', this)">All</div>
@@ -105,17 +109,58 @@
 
   <!-- RANK PAGE (Leaderboard) -->
   <section id="page-rank" class="page">
-    <h2 class="page-title">Leaderboard (Top Withdrawers)</h2>
+    <h2 class="page-title">Leaderboard</h2>
+    <p class="page-subtitle">Top Withdrawers</p>
 
     <!-- Referral Card -->
-    <div class="card refer-card">
+    <div class="refer-card">
       <h3 class="refer-card-title">Invite Friends</h3>
-      <div class="refer-stats">
-        <div><div class="refer-stats-label">Commission</div><div class="refer-stats-value">$0.00</div></div>
-        <div><div class="refer-stats-label">Invited</div><div class="refer-stats-value" id="refTotalTop">0</div></div>
+      <div class="refer-stats-row">
+        <div class="refer-stat">
+          <div class="refer-stat-label">Commission</div>
+          <div class="refer-stat-value">$0.00</div>
+        </div>
+        <div class="refer-stat">
+          <div class="refer-stat-label">Invited</div>
+          <div class="refer-stat-value" id="refTotalTop">0</div>
+        </div>
+        <div class="refer-stat">
+          <div class="refer-stat-label">Rate</div>
+          <div class="refer-stat-value">10%</div>
+        </div>
       </div>
-      <div class="refer-link" id="refLinkTop">...</div>
-      <button class="btn ghost copy-btn" onclick="copyRef()">🔗 Copy Link</button>
+      <div class="refer-link-box">
+        <div class="refer-link-text" id="refLinkTop">...</div>
+        <button class="btn sm copy-btn" onclick="copyRef()">Copy</button>
+      </div>
+      <button class="btn share-btn">🔗 Share on Telegram</button>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-num">68,612</div>
+        <div class="stat-label">Total Tasks</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">$184,935</div>
+        <div class="stat-label">Total Paid</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">829,410</div>
+        <div class="stat-label">Users</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">325D</div>
+        <div class="stat-label">Running</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="rank-tabs">
+      <div class="rank-tab active">🏆 Rank</div>
+      <div class="rank-tab">👥 Invites</div>
+      <div class="rank-tab">📅 Weekly</div>
     </div>
 
     <div id="leaderboardList"></div>
@@ -124,50 +169,114 @@
   <!-- CAMPAIGN (REFER) PAGE -->
   <section id="page-refer" class="page">
     <h2 class="page-title">Campaign</h2>
-    <div class="card" style="text-align: center;">
+    <p class="page-subtitle">Complete tasks, earn rewards</p>
+
+    <!-- Referral Link Card -->
+    <div class="card">
       <h3 class="card-subtitle">Your Referral Link</h3>
-      <div class="refer-link-box" id="refLink">...</div>
-      <button class="btn" onclick="copyRef()">Copy Link</button>
+      <div class="refer-link-box">
+        <div class="refer-link-text" id="refLink">...</div>
+        <button class="btn sm copy-btn" onclick="copyRef()">Copy</button>
+      </div>
+      <button class="btn share-btn">🔗 Share on Telegram</button>
     </div>
-    <h3 class="card-title">Your Referrals</h3>
+
+    <!-- Stats -->
+    <div class="card stats-card">
+      <div class="earn-stats">
+        <div class="earn-stat">
+          <div class="earn-stat-num" id="refCount">0/20</div>
+          <div class="earn-stat-label">Invites</div>
+        </div>
+        <div class="earn-stat">
+          <div class="earn-stat-num">0</div>
+          <div class="earn-stat-label">USDT Earned</div>
+        </div>
+        <div class="earn-stat">
+          <div class="earn-stat-num">0</div>
+          <div class="earn-stat-label">FG Earned</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section-title">Your Referrals</h3>
     <div id="refList"></div>
   </section>
 
   <!-- PROFILE PAGE -->
   <section id="page-profile" class="page">
     <h2 class="page-title">Profile</h2>
+    <p class="page-subtitle">Manage your account settings</p>
 
-    <div class="card profile-card">
-      <div class="profile-header">
-        <div class="profile-left">
-          <img id="profPic" src="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=141a29&color=ff7f00'" />
-          <div>
-            <h3 class="profile-name" id="profName">User</h3>
-            <div class="profile-level">👑 Lv.1 Newbie</div>
-          </div>
+    <!-- Profile Card -->
+    <div class="profile-card">
+      <div class="profile-top">
+        <img id="profPic" src="" onerror="this.src='https://ui-avatars.com/api/?name=U&background=141a29&color=ff7f00'" />
+        <div class="profile-info">
+          <h3 class="profile-name" id="profName">User</h3>
+          <div class="profile-level">👑 Lv.1 Newbie</div>
         </div>
         <div class="trust-badge">
-          Trust <span id="profBalanceTop">0</span> >
+          Trust <span id="profBalanceTop">0</span> ›
         </div>
+      </div>
+      <div class="profile-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-text">0/3</div>
       </div>
     </div>
 
+    <!-- Wallet Summary Card -->
+    <div class="card wallet-summary">
+      <div class="wallet-row">
+        <span class="wallet-label">💳 My Wallet</span>
+      </div>
+      <div class="wallet-amount-row">
+        <span class="wallet-currency">$</span>
+        <span class="wallet-amount" id="profWalletBalance">0</span>
+        <span class="wallet-unit">.020 USDT</span>
+      </div>
+      <button class="btn withdraw-btn" onclick="switchPage('wallet', null)">💰 Withdraw</button>
+    </div>
+
     <!-- Menu List -->
-    <div class="card menu-card" style="padding: 0; overflow: hidden;">
+    <div class="menu-card">
       <div class="menu-item" onclick="switchPage('wallet', null)">
-        <span>💼 My Wallet & Withdraw</span> <span class="menu-arrow">›</span>
+        <div class="menu-left">
+          <span class="menu-icon">💼</span>
+          <span>My Wallet & Withdraw</span>
+        </div>
+        <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="openNotificationsModal()">
-        <span>🔔 Notifications</span> <span class="menu-arrow">›</span>
+        <div class="menu-left">
+          <span class="menu-icon">🔔</span>
+          <span>Notifications</span>
+        </div>
+        <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="window.open(state.config.channels?.[0] || 'https://t.me', '_blank')">
-        <span>📢 Official Channels</span> <span class="menu-arrow">›</span>
+        <div class="menu-left">
+          <span class="menu-icon">📢</span>
+          <span>Official Channels</span>
+        </div>
+        <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="window.open(state.config.supportUrl || 'https://t.me', '_blank')">
-        <span>🎧 Support</span> <span class="menu-arrow">›</span>
+        <div class="menu-left">
+          <span class="menu-icon">🎧</span>
+          <span>Support</span>
+        </div>
+        <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item" onclick="alert('EarnWallet v1.0.0\nDeveloped by Admin')">
-        <span>ℹ️ About Us</span> <span class="menu-arrow">›</span>
+        <div class="menu-left">
+          <span class="menu-icon">ℹ️</span>
+          <span>About Us</span>
+        </div>
+        <span class="menu-arrow">›</span>
       </div>
     </div>
   </section>
@@ -175,7 +284,9 @@
   <!-- WALLET PAGE -->
   <section id="page-wallet" class="page">
     <h2 class="page-title">Withdraw</h2>
-    <div class="card">
+    <p class="page-subtitle">Request your earnings</p>
+
+    <div class="card withdraw-card">
       <p class="wd-rule" id="wdRuleText"></p>
       <label>Amount (Min: <span id="minW">$1.00</span>)</label>
       <input type="number" id="wdAmount" placeholder="Enter amount in USD" />
@@ -183,9 +294,10 @@
       <select id="wdMethod"></select>
       <label>Account Number / Wallet Address</label>
       <input type="text" id="wdAccount" placeholder="bKash/Nagad/TRC20/LTC/ETH" />
-      <button class="btn" onclick="requestWithdraw()">Request Withdraw</button>
+      <button class="btn withdraw-btn" onclick="requestWithdraw()">Request Withdraw</button>
     </div>
-    <h3 class="card-title" style="font-size: 13px;">History</h3>
+
+    <h3 class="section-title">History</h3>
     <div id="historyList"></div>
   </section>
 </main>
@@ -226,7 +338,7 @@
   </div>
 </div>
 
-<!-- Task Modal with Image Upload -->
+<!-- Task Modal -->
 <div class="modal" id="taskModal">
   <div class="modal-content">
     <h3 id="tmTitle" class="modal-title-sm">Task Title</h3>
@@ -238,7 +350,7 @@
         <input type="file" id="tmImage" accept="image/*" style="display:none;" onchange="handleImageUpload(event)" />
         <div id="uploadPreview" class="upload-preview">📸 Click to upload screenshot</div>
       </div>
-      <input type="text" id="tmProof" placeholder="Enter Code/Link here (optional)" style="margin-bottom:10px;" />
+      <input type="text" id="tmProof" placeholder="Enter Code/Link here (optional)" />
     </div>
     <button class="btn" onclick="submitTask()">Submit Task</button>
     <button class="btn ghost" style="margin-top:6px;" onclick="closeModal('taskModal')">Cancel</button>
