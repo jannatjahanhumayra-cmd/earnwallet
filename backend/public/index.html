@@ -91,6 +91,97 @@
     </div>
   </section>
 
+  <!-- ADS PAGE -->
+  <section id="page-ads" class="page">
+    <h2 class="page-title">Watch Ads</h2>
+    <p class="page-subtitle">Watch ads and earn rewards</p>
+
+    <!-- Daily Task Progress -->
+    <div class="card daily-task-card">
+      <div class="daily-task-header">
+        <div class="daily-task-left">
+          <div class="daily-task-icon">🔥</div>
+          <div>
+            <div class="daily-task-title">Daily Task</div>
+            <div class="daily-task-subtitle">Watch 2 ads | Daily 1 day</div>
+          </div>
+        </div>
+        <div class="daily-task-right">
+          <div class="daily-task-coin">🪙 0</div>
+          <div class="daily-task-check">✓</div>
+        </div>
+      </div>
+      <div class="daily-task-progress-bar">
+        <div class="daily-task-progress-fill" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Ads Filter Tabs -->
+    <div class="tabs-scroll">
+      <div class="tab-btn active" onclick="switchAdsTab('all', this)">All</div>
+      <div class="tab-btn" onclick="switchAdsTab('video', this)">Video</div>
+      <div class="tab-btn" onclick="switchAdsTab('banner', this)">Banner</div>
+      <div class="tab-btn" onclick="switchAdsTab('offer', this)">Offers</div>
+    </div>
+
+    <!-- Featured Ad Banner -->
+    <div class="featured-ad-card">
+      <div class="featured-ad-badge">🏆 Official</div>
+      <div class="featured-ad-title">Foxigrow Video Creator Contest</div>
+      <div class="featured-ad-prize">
+        <span class="featured-ad-amount">500</span>
+        <span class="featured-ad-unit">USDT Prize</span>
+      </div>
+      <div class="featured-ad-desc">Create videos about FoxiGrow, share and earn USDT rewards</div>
+      <div class="featured-ad-footer">
+        <span class="featured-ad-time">⏱ 38 days left</span>
+        <button class="btn featured-ad-btn">Join Now ›</button>
+      </div>
+      <div class="featured-ad-dots">
+        <span class="dot active"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+    </div>
+
+    <!-- Ad Categories -->
+    <div class="card">
+      <div class="ad-cat-row">
+        <div class="ad-cat-item">
+          <div class="ad-cat-icon">📅</div>
+          <div class="ad-cat-label">Daily</div>
+          <div class="ad-cat-time">7h 45m to reset</div>
+        </div>
+        <div class="ad-cat-item">
+          <div class="ad-cat-icon">🔥</div>
+          <div class="ad-cat-label">Hot Tasks</div>
+          <div class="ad-cat-count">Back 2</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ad Stats -->
+    <div class="card stats-card">
+      <div class="earn-stats">
+        <div class="earn-stat">
+          <div class="earn-stat-num" id="adsWatched">0/20</div>
+          <div class="earn-stat-label">Watched</div>
+        </div>
+        <div class="earn-stat">
+          <div class="earn-stat-num" id="adsEarnedUSDT">0</div>
+          <div class="earn-stat-label">USDT Earned</div>
+        </div>
+        <div class="earn-stat">
+          <div class="earn-stat-num" id="adsEarnedFG">0</div>
+          <div class="earn-stat-label">FG Earned</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="section-title">Available Ads</h3>
+    <div id="adsListPage"></div>
+  </section>
+
   <!-- TASKS PAGE -->
   <section id="page-tasks" class="page">
     <div class="search-bar">
@@ -315,6 +406,10 @@
   <div class="nav-item" onclick="switchPage('rank', this)">
     <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v2h2v5h2v-5h2v-2z"/></svg>
     Rank
+  </div>
+  <div class="nav-item" onclick="switchPage('ads', this)">
+    <svg viewBox="0 0 24 24"><path d="M21 6h-7.59l3.29-3.29L16 2l-4 4-4-4-.71.71L10.59 6H3c-1.1 0-2 .89-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 14H3V8h18v12zM9 10v8l7-4z"/></svg>
+    Ads
   </div>
   <div class="nav-item" onclick="switchPage('refer', this)">
     <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
