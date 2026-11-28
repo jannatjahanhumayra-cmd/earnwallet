@@ -5,8 +5,8 @@
 const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
-try { tg?.setHeaderColor?.('#0b0f19'); } catch (_) {}
-try { tg?.setBackgroundColor?.('#0b0f19'); } catch (_) {}
+try { tg?.setHeaderColor?.('#0a0a0f'); } catch (_) {}
+try { tg?.setBackgroundColor?.('#0a0a0f'); } catch (_) {}
 
 const INIT = tg?.initData || '';
 
@@ -20,6 +20,7 @@ const state = {
   currentTask: null,
   uploadedImageBase64: null,
   filterType: 'all',
+  adsFilterType: 'all',
   adTimer: null,
   adInterval: null,
   booted: false
@@ -43,7 +44,6 @@ function fmt(n) {
 }
 
 function toUSD(coins) {
-  // 100 Coins = $1.00
   return (Number(coins) / 100).toFixed(3);
 }
 
@@ -72,13 +72,13 @@ function safeOnclickId(s) {
   return String(s ?? '').replace(/[^a-zA-Z0-9_\-]/g, '');
 }
 
-/* ---------- Toast (instead of alert) ---------- */
+/* ---------- Toast ---------- */
 function toast(msg, type = 'info') {
   const div = document.createElement('div');
   div.textContent = String(msg).slice(0, 200);
-  const bg = type === 'error' ? '#ff5c5c'
+  const bg = type === 'error' ? '#ff4757'
            : type === 'success' ? '#2ecc71'
-           : '#141a29';
+           : '#15151e';
   div.style.cssText = `
     position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
     background:${bg};color:#fff;padding:10px 18px;border-radius:8px;
@@ -123,7 +123,7 @@ async function api(path, opts = {}) {
 }
 
 /* =========================================================
-   CHANNEL GATE (server-verified only — no localStorage trust)
+   CHANNEL GATE
    ========================================================= */
 async function checkChannelGate() {
   try {
@@ -142,12 +142,12 @@ async function verifyChannel() {
   btn.textContent = 'Verifying...';
   btn.disabled = true;
   msg.textContent = '';
-  msg.style.color = 'var(--mut)';
+  msg.style.color = 'var(--txt-muted)';
 
   try {
     const res = await api('/api/verify-channel', { method: 'POST', body: '{}' });
     if (res.joined) {
-      msg.textContent = '✅ Verified! Loading...';
+      msg.textContent = ' Verified! Loading...';
       msg.style.color = 'var(--ok)';
       safeShow('channelGate', 'none');
       safeShow('loader', 'flex');
@@ -160,7 +160,6 @@ async function verifyChannel() {
     msg.style.color = 'var(--bad)';
     msg.textContent = String(e.message || 'Verification failed').slice(0, 200);
     btn.textContent = 'Try Again';
-    btn.style.background = 'var(--ok)';
     btn.disabled = false;
   }
 }
@@ -211,10 +210,11 @@ async function boot() {
     safeShow('app-main', 'block');
     safeShow('app-nav', 'flex');
 
-    // Load content in parallel (safe)
+    // Load content in parallel
     await Promise.allSettled([
       safeCall(loadLiveFeed, 'liveFeed'),
       safeCall(loadAds, 'ads'),
+      safeCall(loadAdsForPage, 'adsPage'),
       safeCall(loadTasks, 'tasks'),
       safeCall(loadReferrals, 'referrals'),
       safeCall(loadWallet, 'wallet'),
@@ -258,7 +258,6 @@ async function loadProfile() {
 
   safeSet('userName', data.firstName || 'User');
   safeSet('headerId', 'ID: ' + String(data.telegramId || '0').slice(0, 20));
-  safeSet('userPic', ''); // no-op
   const up = el('userPic'); if (up) up.src = picUrl;
   safeHtml('headerBalance', `<span style="font-size:10px">$</span> ${usdBalance}`);
 
@@ -269,14 +268,14 @@ async function loadProfile() {
   const pp = el('profPic'); if (pp) pp.src = picUrl;
   safeSet('profName', data.firstName || 'User');
   safeSet('profBalanceTop', String(data.balance || 0));
-  // profWalletBalance does NOT exist in index.html — removed
+  safeSet('profWalletBalance', String(Math.floor(data.balance / 100) || 0));
 }
 
 /* =========================================================
    NAVIGATION
    ========================================================= */
 function switchPage(pageId, navEl) {
-  const allowed = ['home', 'tasks', 'rank', 'refer', 'profile', 'wallet'];
+  const allowed = ['home', 'tasks', 'rank', 'ads', 'refer', 'profile', 'wallet'];
   if (!allowed.includes(pageId)) return;
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -285,6 +284,19 @@ function switchPage(pageId, navEl) {
   const target = el('page-' + pageId);
   if (target) target.classList.add('active');
   if (navEl) navEl.classList.add('active');
+
+  // Load page-specific data
+  if (pageId === 'ads') {
+    loadAdsForPage();
+  } else if (pageId === 'tasks') {
+    loadTasks();
+  } else if (pageId === 'rank') {
+    loadLeaderboard();
+  } else if (pageId === 'refer') {
+    loadReferrals();
+  } else if (pageId === 'wallet') {
+    loadWallet();
+  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -297,7 +309,6 @@ async function loadBanner() {
   try {
     const { data } = await api('/api/ad-placements');
     if (data?.top?.html) {
-      // Admin-controlled HTML — strip <script> defensively
       const clean = String(data.top.html).replace(/<script[\s\S]*?<\/script>/gi, '').slice(0, 5000);
       safeHtml('scrollBanner', `<div class="banner-item">${clean}</div>`);
     } else {
@@ -344,7 +355,7 @@ async function loadLeaderboard() {
 function switchTaskTab(type, elm) {
   const allowed = ['all', 'telegram', 'twitter', 'youtube'];
   if (!allowed.includes(type)) return;
-  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#page-tasks .tab-btn').forEach(t => t.classList.remove('active'));
   if (elm) elm.classList.add('active');
   state.filterType = type;
   loadTasks();
@@ -403,8 +414,8 @@ async function loadTasks() {
           <div class="right">
             <div class="reward">+${h(t.reward)}</div>
             ${isDone
-              ? `<button class="btn sm ghost" disabled style="margin-top:6px;">Done</button>`
-              : `<button class="btn sm" style="margin-top:6px;" onclick="openTask('${idSafe}')">Start</button>`}
+              ? `<button class="btn sm ghost" disabled style="margin-top:4px;">Done</button>`
+              : `<button class="btn sm" style="margin-top:4px;" onclick="openTask('${idSafe}')">Start</button>`}
           </div>
         </div>
       `;
@@ -428,7 +439,7 @@ function openTask(id) {
   const linkWrap = el('tmLinkWrap');
   if (linkWrap) {
     linkWrap.innerHTML = (typeof t.url === 'string' && /^https?:\/\//i.test(t.url))
-      ? `<a href="${h(t.url)}" target="_blank" rel="noopener noreferrer" class="btn ghost" style="text-decoration:none;">Go to Link 🔗</a>`
+      ? `<a href="${h(t.url)}" target="_blank" rel="noopener noreferrer" class="btn ghost" style="text-decoration:none;font-size:12px;padding:8px 14px;">Go to Link 🔗</a>`
       : '';
   }
 
@@ -441,7 +452,7 @@ function openTask(id) {
   const preview = el('uploadPreview');
   if (preview) {
     preview.innerHTML = '📸 Click to upload screenshot';
-    preview.style.color = 'var(--mut)';
+    preview.style.color = 'var(--txt-muted)';
   }
 
   const imgInput = el('tmImage');
@@ -506,7 +517,7 @@ async function submitTask() {
     return;
   }
 
-  const btn = document.querySelector('#taskModal .btn');
+  const btn = document.querySelector('#taskModal .btn:not(.ghost)');
   if (btn?.disabled) return;
 
   try {
@@ -530,10 +541,97 @@ async function submitTask() {
 }
 
 /* =========================================================
-   ADS
+   ADS PAGE
+   ========================================================= */
+function switchAdsTab(type, elm) {
+  const allowed = ['all', 'video', 'banner', 'offer'];
+  if (!allowed.includes(type)) return;
+  document.querySelectorAll('#page-ads .tab-btn').forEach(t => t.classList.remove('active'));
+  if (elm) elm.classList.add('active');
+  state.adsFilterType = type;
+  loadAdsForPage();
+}
+
+async function loadAdsForPage() {
+  const container = el('adsListPage');
+  if (!container) return;
+
+  try {
+    const { data } = await api('/api/ads');
+    state.ads = Array.isArray(data) ? data : [];
+
+    let filtered = state.ads;
+
+    if (state.adsFilterType !== 'all') {
+      filtered = filtered.filter(a =>
+        String(a.type || '').toLowerCase() === state.adsFilterType ||
+        String(a.title || '').toLowerCase().includes(state.adsFilterType) ||
+        String(a.category || '').toLowerCase() === state.adsFilterType
+      );
+    }
+
+    if (!filtered.length) {
+      safeHtml('adsListPage', '<p class="muted" style="text-align:center;padding:20px;">No ads available.</p>');
+      return;
+    }
+
+    safeHtml('adsListPage', filtered.map(a => {
+      const idSafe = safeOnclickId(a.id);
+      const banner = (typeof a.bannerUrl === 'string' && a.bannerUrl.startsWith('http'))
+        ? a.bannerUrl
+        : '';
+      const duration = Math.max(20, Math.min(300, Number(a.duration) || 20));
+      const progress = Math.min(100, Math.max(0, Number(a.progress) || 0));
+      const isWatched = a.watched === true || a.status === 'completed';
+
+      return `
+        <div class="ad-list-item">
+          <div class="left">
+            ${banner
+              ? `<img src="${h(banner)}" onerror="this.style.display='none'" alt="" />`
+              : `<div style="width:44px;height:44px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">🎬</div>`}
+            <div>
+              <div class="title">${h(a.title || 'Ad')}</div>
+              <div class="subtitle">${duration}s • ${h(a.category || 'Video')}</div>
+              <div class="reward-row">
+                <span class="reward-usdt">💲 +${h(a.usdtReward || '0.04')}</span>
+                <span class="reward-coin">🪙 +${h(a.reward || '0.32')}</span>
+                <div class="progress-mini"><div class="progress-mini-fill" style="width:${progress}%"></div></div>
+                <span class="ad-id">#${h(a.adId || a.id || '0').toString().slice(-5)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="right">
+            ${isWatched
+              ? `<button class="watch-btn" disabled style="opacity:0.5;background:var(--line);">✓ Done</button>`
+              : `<button class="watch-btn" onclick="startAd('${idSafe}')">Watch</button>`}
+          </div>
+        </div>
+      `;
+    }).join(''));
+
+    // Update ads stats if elements exist
+    const watchedCount = state.ads.filter(a => a.watched === true || a.status === 'completed').length;
+    const totalAds = state.ads.length;
+    safeSet('adsWatched', `${watchedCount}/${totalAds || 20}`);
+
+    const totalUsdt = state.ads.reduce((sum, a) => sum + (parseFloat(a.usdtReward) || 0), 0);
+    const totalFg = state.ads.reduce((sum, a) => sum + (parseFloat(a.reward) || 0), 0);
+    safeSet('adsEarnedUSDT', totalUsdt.toFixed(2));
+    safeSet('adsEarnedFG', totalFg.toFixed(2));
+
+  } catch (_) {
+    safeHtml('adsListPage', '<p class="muted" style="text-align:center;padding:20px;">Could not load ads.</p>');
+  }
+}
+
+/* =========================================================
+   ADS (Old - for Tasks page compatibility)
    ========================================================= */
 async function loadAds() {
-  if (!el('adsList')) return;
+  // This loads ads for the old hidden adsList in tasks page
+  const container = el('adsList');
+  if (!container) return;
   try {
     const { data } = await api('/api/ads');
     state.ads = Array.isArray(data) ? data : [];
@@ -561,7 +659,7 @@ async function loadAds() {
           </div>
           <div class="right">
             <div class="reward">+${h(a.reward)}</div>
-            <button class="btn sm" style="margin-top:6px;" onclick="startAd('${idSafe}')">Watch</button>
+            <button class="btn sm" style="margin-top:4px;" onclick="startAd('${idSafe}')">Watch</button>
           </div>
         </div>
       `;
@@ -584,7 +682,6 @@ async function startAd(id) {
     if (!data?.sessionId) throw new Error('Invalid ad session');
     state.currentAd = data;
 
-    // Open URL
     if (typeof data.url === 'string' && /^https?:\/\//i.test(data.url)) {
       try {
         if (tg?.openLink) tg.openLink(data.url);
@@ -607,7 +704,6 @@ async function startAd(id) {
     const claimBtn = el('adClaimBtn');
     if (claimBtn) claimBtn.disabled = true;
 
-    // Clear any existing interval to prevent leaks
     if (state.adInterval) clearInterval(state.adInterval);
 
     state.adInterval = setInterval(() => {
@@ -651,6 +747,7 @@ async function claimAd() {
 
     await loadProfile();
     loadAds();
+    loadAdsForPage();
   } catch (e) {
     toast(String(e.message || 'Claim failed').slice(0, 150), 'error');
   } finally {
@@ -667,7 +764,7 @@ async function loadLiveFeed() {
     const { data } = await api('/api/live-withdrawals');
     const items = Array.isArray(data) ? data : [];
     if (!items.length) {
-      safeHtml('liveFeed', '<div class="live-item" style="color:var(--mut)">No recent withdrawals.</div>');
+      safeHtml('liveFeed', '<div class="live-item" style="color:var(--txt-muted)">No recent withdrawals.</div>');
       return;
     }
     safeHtml('liveFeed', items.map(x => `
@@ -691,6 +788,7 @@ async function loadReferrals() {
     safeSet('refLink', link);
     safeSet('refLinkTop', link);
     safeSet('refTotalTop', String(Math.max(0, Number(data.totalCount) || 0)));
+    safeSet('refCount', `${Math.max(0, Number(data.totalCount) || 0)}/20`);
 
     if (!Array.isArray(data.referrals) || !data.referrals.length) {
       safeHtml('refList', '<p class="muted" style="text-align:center; font-size:12px;">No referrals yet.</p>');
@@ -719,7 +817,7 @@ async function loadReferrals() {
 }
 
 async function copyRef() {
-  const link = el('refLink')?.textContent || '';
+  const link = el('refLink')?.textContent || el('refLinkTop')?.textContent || '';
   if (!link || !link.startsWith('https://')) {
     toast('Referral link not ready', 'error');
     return;
@@ -817,7 +915,7 @@ async function loadWallet() {
             <div style="font-size:14px;font-weight:bold;color:${isPos ? 'var(--ok)' : 'var(--bad)'}">
               ${isPos ? '+' : ''}${amt}
             </div>
-            <div style="font-size:10px;color:var(--mut);">${h(x.status || '')}</div>
+            <div style="font-size:10px;color:var(--txt-muted);">${h(x.status || '')}</div>
           </div>
         </div>
       `;
@@ -895,7 +993,7 @@ async function loadNotifications() {
         <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border-left: 3px solid var(--acc);">
           <div style="font-weight: 700; color: var(--acc); margin-bottom: 4px; font-size:13px;">${h(n.title)}</div>
           <div style="font-size: 12px; color: var(--txt); margin-bottom: 6px;">${h(n.message)}</div>
-          <div style="font-size: 10px; color: var(--mut);">${h(dt)}</div>
+          <div style="font-size: 10px; color: var(--txt-muted);">${h(dt)}</div>
         </div>
       `;
     }).join(''));
@@ -910,7 +1008,6 @@ function closeModal(id) {
   const node = el(id);
   if (node) node.classList.remove('active');
 
-  // Clear ad timer if closing ad modal
   if (id === 'adModal' && state.adInterval) {
     clearInterval(state.adInterval);
     state.adInterval = null;
