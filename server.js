@@ -436,29 +436,81 @@ app.get('/api/app-config', telegramAuth, async (req, res) => {
 });
 
 // ==========================================
-// CHANNEL VERIFICATION
+// CHANNEL VERIFICATION (FIXED)
 // ==========================================
 
 app.post('/api/verify-channel', telegramAuth, async (req, res) => {
   try {
     const uid = req.telegramUser.id;
-    const settingsSnap = await getDb().collection('appConfig').doc('settings').get();
-    const channels = settingsSnap.exists && settingsSnap.data().channels ? settingsSnap.data().channels : ['EarnWallet_Official', 'All_Official_Channal'];
+    const db = getDb();
+    const settingsSnap = await db.collection('appConfig').doc('settings').get();
+    
+    // ডিফল্ট চ্যানেল লিস্ট
+    let channels = ['https://t.me/EarnWallet_Official', 'https://t.me/All_Official_Channal'];
+    
+    if (settingsSnap.exists && Array.isArray(settingsSnap.data().channels)) {
+      channels = settingsSnap.data().channels;
+    }
 
-    for (const ch of channels) {
-      let username = ch;
-      if (ch.includes('t.me/')) username = ch.split('t.me/')[1].split('/')[0];
-      username = username.replace('@', '');
+    // ডুপ্লিকেট চ্যানেল বাদ দেওয়া
+    const uniqueChannels = [...new Set(channels)];
+
+    for (const ch of uniqueChannels) {
+      if (!ch) continue;
+
+      // লিংক থেকে শুধু ইউজারনেম বের করা (যেকোনো বাড়তি অক্ষর বাদ দিয়ে)
+      let username = String(ch).trim();
+      if (username.includes('t.me/')) {
+        username = username.split('t.me/')[1];
+      }
+      // ? , / @ ) ইত্যাদি সব বাদ দিয়ে শুধু নাম রাখা
+      username = username.replace(/[^a-zA-Z0-9_]/g, ''); 
+
+      // যদি ইউজারনেম খালি থাকে, স্কিপ করুন
+      if (!username) continue;
 
       try {
-        const result = await telegramApi('getChatMember', { chat_id: `@${username}`, user_id: uid });
-        if (!['creator', 'administrator', 'member'].includes(result.status)) {
-          return res.json({ success: false, joined: false, error: `Join channel @${username} first.` });
+        // 🟢 FIX 1: user_id অবশ্যই Number হতে হবে
+        const result = await telegramApi('getChatMember', { 
+          chat_id: `@${username}`, 
+          user_id: Number(uid) 
+        });
+
+        const status = result.status;
+        // ইউজার চ্যানেলে না থাকলে
+        if (!['creator', 'administrator', 'member'].includes(status)) {
+          return res.json({ 
+            success: false, 
+            joined: false, 
+            error: `Please join our channel: @${username}` 
+          });
         }
-      } catch (err) { return res.json({ success: false, joined: false, error: `Could not verify @${username}. Join and try again.` }); }
+      } catch (err) {
+        console.error(`Telegram API Error for @${username}:`, err.message);
+        
+        // 🟢 FIX 2: বট অ্যাডমিন না থাকলে সুন্দর মেসেজ
+        if (err.message.includes('member list is inaccessible') || err.message.includes('chat not found') || err.message.includes('user not found')) {
+          return res.json({ 
+            success: false, 
+            joined: false, 
+            error: `Admin Error: Make sure bot is Admin in @${username}` 
+          });
+        }
+        
+        return res.json({ 
+          success: false, 
+          joined: false, 
+          error: `Could not verify @${username}. Error: ${err.message}` 
+        });
+      }
     }
+
+    // সব ঠিক থাকলে
     res.json({ success: true, joined: true, message: 'Verified successfully' });
-  } catch (error) { sendError(res, error, 'Could not verify channel.'); }
+    
+  } catch (error) { 
+    sendError(res, error, 'Could not verify channel.'); 
+  }
 });
 
 // ==========================================
