@@ -1,4 +1,4 @@
-you:root { 
+:root { 
   --bg: #0b0f19; 
   --card: #141a29; 
   --card-hover: #1c2437;
@@ -23,11 +23,11 @@ body { margin: 0; background: var(--bg); color: var(--txt); padding-bottom: 65px
 
 /* --- Header --- */
 header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: var(--bg); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.user-info { display: flex; align-items: center; gap: 10px; }
-.user-info img { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 2px solid var(--acc); box-shadow: 0 0 8px var(--acc-glow); }
-.user-info .name { font-weight: 700; font-size: 14px; color: #fff; }
+.user-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.user-info img { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 2px solid var(--acc); box-shadow: 0 0 8px var(--acc-glow); flex-shrink: 0; }
+.user-info .name { font-weight: 700; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
 .user-info .id { font-size: 10px; color: var(--mut); }
-.balance-badge { background: rgba(255, 127, 0, 0.1); border: 1px solid var(--acc); color: var(--acc); padding: 6px 10px; border-radius: 16px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 4px; box-shadow: 0 0 8px var(--acc-glow); }
+.balance-badge { background: rgba(255, 127, 0, 0.1); border: 1px solid var(--acc); color: var(--acc); padding: 6px 10px; border-radius: 16px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 4px; box-shadow: 0 0 8px var(--acc-glow); flex-shrink: 0; }
 
 /* --- Main Content --- */
 main { padding: 12px 16px; }
@@ -35,7 +35,7 @@ main { padding: 12px 16px; }
 .page.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- Notification Box (New) --- */
+/* --- Notification Box --- */
 .notice-box {
   background: linear-gradient(90deg, rgba(255,127,0,0.15), rgba(255,127,0,0.05));
   border: 1px solid var(--acc);
@@ -61,11 +61,11 @@ main { padding: 12px 16px; }
 .notice-marquee span {
   display: inline-block;
   padding-left: 100%;
-  animation: marquee 10s linear infinite;
+  animation: marquee 15s linear infinite;
 }
 @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-/* --- Search Bar (New) --- */
+/* --- Search Bar --- */
 .search-bar {
   margin-bottom: 12px;
 }
@@ -92,14 +92,15 @@ main { padding: 12px 16px; }
 .profile-card { display: flex; flex-direction: column; gap: 8px; }
 .profile-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .profile-header img { width: 50px; height: 50px; border-radius: 12px; border: 2px solid var(--line); }
-.profile-name { font-size: 18px; font-weight: 700; margin: 0; }
+.profile-name { font-size: 18px; font-weight: 700; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
 .profile-level { color: var(--warn); font-size: 11px; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
-.wallet-balance { font-size: 26px; font-weight: 700; color: #fff; margin: 8px 0; display: flex; align-items: baseline; gap: 4px; }
+.wallet-balance { font-size: 28px; font-weight: 700; color: #fff; margin: 8px 0; display: flex; align-items: baseline; gap: 4px; word-break: break-all; }
 .wallet-balance span { font-size: 12px; color: var(--mut); font-weight: normal; }
 
 /* --- Buttons --- */
 .btn { width: 100%; background: linear-gradient(90deg, #ff7f00, #ff5500); color: #fff; border: none; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; text-align: center; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 3px 10px var(--acc-glow); transition: transform 0.1s; }
 .btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn.ghost { background: var(--card-hover); border: 1px solid var(--line); color: var(--txt); box-shadow: none; }
 .btn.sm { padding: 6px 10px; font-size: 12px; width: auto; border-radius: 6px; }
 
@@ -109,16 +110,17 @@ input:focus, select:focus { border-color: var(--acc); outline: none; }
 label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; }
 
 /* --- Lists --- */
-.list-item { background: var(--card); border: 1px solid var(--line); padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
-.list-item .left { display: flex; align-items: center; gap: 10px; }
-.list-item img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--bg); border: 1px solid var(--line); }
-.list-item .title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
-.list-item .subtitle { font-size: 11px; color: var(--mut); }
-.list-item .reward { color: var(--ok); font-weight: 800; font-size: 14px; text-align: right; }
+.list-item { background: var(--card); border: 1px solid var(--line); padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.list-item .left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.list-item img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--bg); border: 1px solid var(--line); flex-shrink: 0; }
+.list-item .title { font-weight: 700; font-size: 13px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.list-item .subtitle { font-size: 11px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-item .reward { color: var(--ok); font-weight: 800; font-size: 14px; text-align: right; flex-shrink: 0; }
+.list-item .right { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
 
 /* --- Live Feed --- */
 .live-feed-wrapper { background: rgba(255, 127, 0, 0.1); border: 1px solid rgba(255, 127, 0, 0.2); border-radius: 10px; padding: 8px 12px; overflow: hidden; margin-bottom: 14px; }
-.live-feed { display: inline-block; white-space: nowrap; animation: scrollText 20s linear infinite; }
+.live-feed { display: inline-block; white-space: nowrap; animation: scrollText 25s linear infinite; }
 .live-item { display: inline-flex; align-items: center; gap: 6px; margin-right: 20px; font-size: 12px; color: var(--mut); }
 .live-item b { color: var(--acc); }
 @keyframes scrollText { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
@@ -144,7 +146,7 @@ label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; 
 .upload-preview { color: var(--mut); font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
 .upload-preview img { max-width: 100%; max-height: 100px; border-radius: 6px; border: 1px solid var(--line); }
 
-/* --- New Additions --- */
+/* --- Menu --- */
 .menu-item {
   display: flex;
   justify-content: space-between;
@@ -158,6 +160,7 @@ label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; 
 .menu-item:hover { background: rgba(255,255,255,0.02); }
 .menu-item:last-child { border-bottom: none; }
 
+/* --- Scroll Banner --- */
 .scroll-banner-wrapper {
   background: var(--card);
   border: 1px solid var(--line);
@@ -169,7 +172,7 @@ label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; 
 .scroll-banner {
   display: flex;
   white-space: nowrap;
-  animation: bannerScroll 15s linear infinite;
+  animation: bannerScroll 20s linear infinite;
 }
 .banner-item {
   padding: 0 20px;
@@ -182,6 +185,7 @@ label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; 
   100% { transform: translateX(-100%); }
 }
 
+/* --- Leaderboard / Rank --- */
 .rank-item {
   display: flex;
   align-items: center;
@@ -199,5 +203,6 @@ label { display: block; font-size: 12px; color: var(--mut); margin-bottom: 6px; 
 .rank-num.top3 { color: #cd7f32; } /* Bronze */
 .rank-name { font-size: 13px; font-weight: 600; }
 .rank-amount { font-size: 13px; font-weight: 700; color: var(--ok); }
+
 /* Utility */
 .muted { color: var(--mut); }
